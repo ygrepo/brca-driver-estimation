@@ -23,7 +23,7 @@ count_number_of_early_clonal <- function(df, ids) {
 	df_early$type <- NA
 	df_early$type <- apply(
 		df_early, 
-		1,x
+		1,
 		function(x) {
 			ref <- nchar(x['ref'])
 			alt <- nchar(x['alt'])

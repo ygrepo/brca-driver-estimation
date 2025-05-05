@@ -1,3 +1,20 @@
+# load libraries
+library(BoutrosLab.plotting.general)
+library(dplyr)
+
+rm(list = ls())
+date <- Sys.Date()
+setwd("/Users/yvesgreatti/github/brca-driver-estimation")
+
+source("code/tcga/helper_functions.R")
+
+date <- "2025-05-05"
+cancer <- "BRCA"
+gene <- "BRCA1"
+mutation <- "lohdeletionseg"
+calculate_median_est_incidence_2(date, cancer, gene, mutation)
+
+
 calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer,
                                           include_loh = TRUE,
                                           loh_column = "loh_rate",

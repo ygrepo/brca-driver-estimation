@@ -1,81 +1,131 @@
 ### GET MUTATION RATE #############################################################################
 library(readxl)
 
+# get_mutation_rate <- function(type, anno) {
+#   if (type == "snv") {
+#     # read in somatic mutation rate
+#     # mut <- read.delim(
+#     # 	'TCGA_TMB.tsv',
+#     # 	as.is = TRUE
+#     # 	)
+#     mut <- read.delim(
+#       "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
+#       as.is = TRUE
+#     )
+#     colnames(mut) <- gsub("nonsynonymous_count", "count", colnames(mut))
+#   } else if (type == "cna") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
+#       header = TRUE,
+#       as.is = TRUE
+#     )
+#   } else if (type == "cnaseg") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_segments.tsv",
+#       header = TRUE,
+#       as.is = TRUE
+#     )
+#   } else if (type == "deletion") {
+#     # read in cna segments, deletions only
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_cna_deletion_bp.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "deletionseg") {
+#     # read in cna segments, deletions only
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "indel") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "indelseg") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "amplification") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "amplificationseg") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "insertion") {
+#     # read in cna segments
+#     mut <- read.delim(
+#       "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv",
+#       as.is = TRUE
+#     )
+#   } else if (type == "meth") {
+#     # read in methylation values
+#     mut <- read.csv(
+#       "ciriello_methylation_rates.csv",
+#       as.is = TRUE,
+#       header = TRUE
+#     )
+#     mut <- mut[, c("SampleID", "DMI_score")]
+#     mut$SampleID <- gsub(".", "-", substr(mut$SampleID, 1, 12), fixed = TRUE)
+#     colnames(mut) <- c("bcr_patient_barcode", "count")
+#   } else if (type == "clones") {
+#     mut <- read.csv("ciriello_number_clones.csv", as.is = TRUE)
+#     mut <- mut[, c("sample_name", "number.of.clones")]
+#     mut$sample_name <- substr(mut$sample_name, 1, 12)
+#     colnames(mut) <- c("bcr_patient_barcode", "count")
+#   } else {
+#     stop("Invalid mutation type specified. Please specifiy either snv, meth or cna ...")
+#   }
+#   # if multiple samples per patient, find median mutation count
+#   mut <- aggregate(mut$count, by = list(mut$bcr_patient_barcode), median, na.rm = TRUE)
+#   colnames(mut) <- c("bcr_patient_barcode", "count")
+#   # convert number of mutations to mutation rate
+#   # divide by age at diagnosis
+#   mut_rate <- merge(
+#     mut[, c("count", "bcr_patient_barcode")],
+#     anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
+#     by = "bcr_patient_barcode"
+#   )
+#   mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
+#   rownames(mut_rate) <- mut_rate$bcr_patient_barcode
+#   return(mut_rate)
+# }
+
 get_mutation_rate <- function(type, anno) {
-  if (type == "snv") {
-    # read in somatic mutation rate
-    # mut <- read.delim(
-    # 	'TCGA_TMB.tsv',
-    # 	as.is = TRUE
-    # 	)
-    mut <- read.delim(
-      "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
-      as.is = TRUE
-    )
-    colnames(mut) <- gsub("nonsynonymous_count", "count", colnames(mut))
-  } else if (type == "cna") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
-      header = TRUE,
-      as.is = TRUE
-    )
-  } else if (type == "cnaseg") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_segments.tsv",
-      header = TRUE,
-      as.is = TRUE
-    )
-  } else if (type == "deletion") {
-    # read in cna segments, deletions only
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_cna_deletion_bp.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "deletionseg") {
-    # read in cna segments, deletions only
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "indel") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "indelseg") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "amplification") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "amplificationseg") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
-      as.is = TRUE
-    )
-  } else if (type == "insertion") {
-    # read in cna segments
-    mut <- read.delim(
-      "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv",
-      as.is = TRUE
-    )
+  # Mapping of mutation types to file paths
+  file_map <- list(
+    snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
+    cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
+    cnaseg = "data/TCGA/mutations/TCGA_segments.tsv",
+    deletion = "data/TCGA/mutations/TCGA_cna_deletion_bp.tsv",
+    deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+    lohdeletion = "data/TCGA/mutations/TCGA_LOH_deletions_bp.tsv",
+    lohdeletionseg = "data/TCGA/mutations/TCGA_LOH_deletions.tsv",
+    indel = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
+    indelseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+    amplification = "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
+    amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
+    insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
+  )
+
+  cat("Reading mutation data for type:", type, "\n")
+  if (type %in% names(file_map)) {
+    fn <- file_map[[type]]
+    cat("Reading file:", fn, "\n")
+    mut <- read.delim(fn, as.is = TRUE, header = TRUE)
   } else if (type == "meth") {
-    # read in methylation values
-    mut <- read.csv(
-      "ciriello_methylation_rates.csv",
-      as.is = TRUE,
-      header = TRUE
-    )
+    mut <- read.csv("ciriello_methylation_rates.csv", as.is = TRUE)
     mut <- mut[, c("SampleID", "DMI_score")]
     mut$SampleID <- gsub(".", "-", substr(mut$SampleID, 1, 12), fixed = TRUE)
     colnames(mut) <- c("bcr_patient_barcode", "count")
@@ -85,22 +135,30 @@ get_mutation_rate <- function(type, anno) {
     mut$sample_name <- substr(mut$sample_name, 1, 12)
     colnames(mut) <- c("bcr_patient_barcode", "count")
   } else {
-    stop("Invalid mutation type specified. Please specifiy either snv, meth or cna ...")
+    stop("Invalid mutation type specified. Please specify one of: snv, cna, meth, clones, etc.")
   }
-  # if multiple samples per patient, find median mutation count
-  mut <- aggregate(mut$count, by = list(mut$bcr_patient_barcode), median, na.rm = TRUE)
+
+  # Special renaming for SNV data
+  if (type == "snv") {
+    colnames(mut) <- gsub("nonsynonymous_count", "count", colnames(mut))
+  }
+
+  # Aggregate by patient barcode using median
+  mut <- aggregate(mut$count, by = list(mut$bcr_patient_barcode), FUN = median, na.rm = TRUE)
   colnames(mut) <- c("bcr_patient_barcode", "count")
-  # convert number of mutations to mutation rate
-  # divide by age at diagnosis
+
+  # Merge with clinical annotation and compute mutation rate
   mut_rate <- merge(
-    mut[, c("count", "bcr_patient_barcode")],
+    mut,
     anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
     by = "bcr_patient_barcode"
   )
   mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
   rownames(mut_rate) <- mut_rate$bcr_patient_barcode
+
   return(mut_rate)
 }
+
 
 ### CALCULATE MUTATION RATE RATIO #################################################################
 # calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
@@ -138,16 +196,34 @@ get_mutation_rate <- function(type, anno) {
 #   )
 # }
 
-calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
+calculate_mutation_rate_ratio <- function(int, 
+                                          date,
+                                          mut_rate, 
+                                          ddr, 
+                                          wt, 
+                                          anno, 
+                                          cancer,
+                                          gene,
+                                          mutation,
+                                          adj_flag = TRUE) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   # wt_sample <- sample(wt, length(ddr), replace = TRUE)
+  fn <- paste(date, cancer, gene, mutation, 
+                    "mutation_rate_ratio.xlsx", sep = "_")
+  fn <- paste0("output/data/TCGA/", fn)
   if (cancer == "BRCA") {
-    wt_sample <- standardize_clinical_characteristics_breast(
+    res <- standardize_clinical_characteristics_breast(
       anno = anno,
       wt = wt,
-      ddr = ddr
+      ddr = ddr,
+      out_xlsx = fn
     )
+    if (adj_flag) {
+      wt_sample <- res$adj
+    } else {
+      wt_sample <- res$unadj
+    }
   } else if (cancer == "OV") {
     wt_sample <- standardize_clinical_characteristics_ovarian(
       anno = anno,
@@ -160,13 +236,13 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
 
   # calculate median mutation rate of ddr and non ddr samples
   ddr_median <- median(mut_rate[ddr_sample, "rate"])
-  wt_median <- median(mut_rate[wt_sample, "rate"])
+  wt_median <- median(mut_rate[wt_sample, "rate"], na.rm = TRUE)
 
   # calculate ratio
   ddr_ratio <- ddr_median / wt_median
 
   # calculate ratios
-  data.frame(
+  df <- data.frame(
     int = int,
     num = length(ddr),
     wt_median = wt_median,
@@ -188,6 +264,7 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
     incidence_fifteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)),
     incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
   )
+  return (df)
 }
 
 ### CALCULATE MEDIAN ESTIMATED INCIDENCES #########################################################
@@ -195,7 +272,8 @@ calculate_median_est_incidence <- function() {
   # create grid of cancer, gene and mutation type
   par <- expand.grid(
     cancer = c("BRCA", "OV"), gene = c("BRCA1", "BRCA2"),
-    mutation = c("snv", "cna", "deletion", "amplification", "indel")
+    mutation = c("snv", "cna")
+    # mutation = c("snv", "cna", "deletion", "amplification", "indel")
   ) # ,'insertion', 'indelseg','amplificationseg','cnaseg','deletionseg'))
   # loop over grid and calculate medians
   incidence <- apply(
@@ -203,17 +281,20 @@ calculate_median_est_incidence <- function() {
     1,
     function(x) {
       filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
+      # filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
       print(filename)
       # filename <- list.files(pattern = fileflag)
       tmp <- read.delim(filename, as.is = TRUE)
       # read in observed
       # # read in observed values
-      observed <- read.delim("observed_incidence_rates.tsv", as.is = TRUE)
+      observed <- read.delim("SupplementaryTable01_BRCA_OVCA_SIR.xlsx", as.is = TRUE)
+      #      observed <- read.delim("observed_incidence_rates.tsv", as.is = TRUE)
       # extract median and CIs
       ob_median <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Median"]
       ob_L95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "L95"]
       ob_U95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "U95"]
-      ob_n <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Num"]
+      # ob_n <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Num"]
+      on_n <- 6036
       # calculate standard deviation
       ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
       ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
@@ -229,6 +310,57 @@ calculate_median_est_incidence <- function() {
   )
   colnames(incidence) <- apply(par, 1, paste, collapse = "_")
   rownames(incidence) <- c("two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen")
+  return(incidence)
+}
+
+calculate_median_est_incidence_2 <- function(date, cancer, gene, mutation) {
+  # create grid of cancer, gene and mutation type
+  par <- expand.grid(
+    cancer = c(cancer), gene = c(gene),
+    mutation = c(mutation)
+    # mutation = c("snv", "cna", "deletion", "amplification", "indel")
+  ) # ,'insertion', 'indelseg','amplificationseg','cnaseg','deletionseg'))
+  # loop over grid and calculate medians
+  incidence <- apply(
+    par,
+    1,
+    function(x) {
+      filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
+      filename <- paste0("data/TCGA/incidence_estimates/", filename)
+      # filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
+      print(filename)
+      # filename <- list.files(pattern = fileflag)
+      tmp <- read.delim(filename, as.is = TRUE)
+      # read in observed
+      # # read in observed value
+      observed <- readxl::read_xlsx("data/TCGA/SupplementaryTable01_BRCA_OVCA_SIR.xlsx", "Formated")
+      # read.delim("SupplementaryTable01_BRCA_OVCA_SIR.xlsx", as.is = TRUE)
+      #      observed <- read.delim("observed_incidence_rates.tsv", as.is = TRUE)
+      # extract median and CIs
+      ob_median <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Median"][[1]]
+      ob_L95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "L95"][[1]]
+      ob_U95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "U95"][[1]]
+      ob_n <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Num"][[1]]
+      # calculate standard deviation
+      ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
+      ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
+      fn <- paste(date, x["cancer"], x["gene"], x["mutation"], "segplot.tiff", sep = "_")
+      fn <- paste0("output/figures/TCGA/", fn)
+      plots <- create_incidence_segplot(tmp,
+        ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
+        filename = fn,
+        main = paste(x["cancer"], x["gene"]), driver_max = 15, ylimit = 100, yat = seq(0, 100, 25)
+      )
+      # calculate median
+      # apply(tmp[,grep('incidence', colnames(tmp))], 2, median)
+      # apply KS test
+      ks <- run_ks_test(tmp, ob_dist)
+      ks$group <- paste(x["cancer"], x["gene"], x["mutation"], sep = "|")
+      return(ks)
+    }
+  )
+  # colnames(incidence) <- apply(par, 1, paste, collapse = "_")
+  # rownames(incidence) <- c("two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen")
   return(incidence)
 }
 
@@ -291,8 +423,18 @@ create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, m
 
   # set xlab
   mut <- gsub("seg", "", strsplit(filename, "_")[[1]][4])
-  labels <- c("Number SNV drivers", "Number CNA drivers", "Number CNA deletion drivers", "Number CNA gain drivers", "Number small deletion drivers")
-  names(labels) <- c("snv", "cna", "deletion", "amplification", "indel")
+  labels <- c("Number SNV drivers", 
+              "Number CNA drivers", 
+              "Number CNA deletion drivers", 
+              "Number CNA deletion with LOH drivers", 
+              "Number CNA gain drivers", 
+              "Number small deletion drivers")
+  names(labels) <- c("snv", 
+                     "cna", 
+                     "deletion", 
+                     "lohdeletion",
+                     "amplification", 
+                     "indel")
   # create segplot
   create.scatterplot(
     mean ~ num,
@@ -428,47 +570,181 @@ test_mutation_rate <- function(df) {
 }
 
 ### STANDARDIZE WT ON CLINICAL VARIABLES ##########################################################
-standardize_clinical_characteristics_breast <- function(anno, wt, ddr) {
-  # read in subtype data
-  subtype <- readxl::read_xlsx("data/TCGA/mmc4.xlsx", skip = 1)
-  # subtype <- read.csv(
-  # "data/TCGA/mmc4.xlsx",
-  #       #"~/GermlineSomaticAssociations/genome-wide/output/somatic_gwas/pancan/driver_rate_comparison/TCGA_gyn_supplementary_table4.csv",
-  #   as.is = TRUE,
-  #   skip = 1
-  # )
-  subtype <- subtype[, c("Sample.ID", "BRCA_Subtype_PAM50")]
-  # find carrier subtypes and calculate prop
-  car_sub <- subtype[subtype$Sample.ID %in% ddr, ]
-  car_sub_prop <- table(car_sub$BRCA_Subtype_PAM50) / nrow(car_sub)
-  # only keep wt
-  wt_sub <- subtype[!subtype$Sample.ID %in% ddr, ]
-  # only keep wt that have mutation data
-  wt_sub <- wt_sub[wt_sub$Sample.ID %in% wt, ]
 
-  # find carrier pathologic stage
-  car_stage <- anno[anno$bcr_patient_barcode %in% ddr, ]
-  car_stage_prop <- table(car_stage$pathologic_stage) / nrow(car_stage)
-  # only keep wt
-  wt_stage <- anno[!anno$bcr_patient_barcode %in% ddr, c("bcr_patient_barcode", "pathologic_stage")]
-  # only keep wt that have mutation data
-  wt_stage <- wt_stage[wt_stage$bcr_patient_barcode %in% wt, ]
-  # merge stage and subtypes
-  colnames(wt_stage) <- gsub("bcr_patient_barcode", "Sample.ID", colnames(wt_stage))
-  wt_df <- merge(wt_sub, wt_stage, by = "Sample.ID")
-  wt_df$group <- paste(wt_df$BRCA_Subtype_PAM50, wt_df$pathologic_stage, sep = "|")
-  # get weights of each group
-  group_weights <- as.data.frame(table(wt_df$group))
-  colnames(group_weights) <- c("group", "prop")
-  group_weights$prop <- group_weights$prop / nrow(wt_df)
-  # add weights
-  wt_df <- merge(wt_df, group_weights, by = "group")
-  # randomly sample wt
-  set.seed(42) # or any deterministic transformation of input
-  wt_sample <- dplyr::sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
-  # wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
-  return(wt_sample$Sample.ID)
+standardize_clinical_characteristics_breast <- function(anno, wt, ddr,
+                                                        out_xlsx = "output/data/wt_matching_summary.xlsx") {
+  anno <- remove_stripping_ABC(anno, col="pathologic_stage")
+  
+  # Read subtype & build carrier summary ----
+  subtype <- read_xlsx("data/TCGA/mmc4.xlsx", skip = 1) |>
+    select(Sample.ID, BRCA_Subtype_PAM50)
+
+  car_sub <- subtype |> filter(Sample.ID %in% ddr)
+  car_stage <- anno |>
+    filter(bcr_patient_barcode %in% ddr) |>
+    rename(Sample.ID = bcr_patient_barcode) |>
+    select(Sample.ID, pathologic_stage)
+
+  car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
+    mutate(group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+
+  car_summary <- car_df |>
+    count(group, name = "Carriers_n") |>
+    mutate(
+      Carriers_pct = Carriers_n / sum(Carriers_n),
+      Expected_WT  = Carriers_pct * sum(Carriers_n)
+    )
+
+  # Prepare WT pool ----
+   wt_sub <- subtype |> 
+    filter(!Sample.ID %in% ddr) |>
+    filter(Sample.ID %in% wt) 
+    
+  # wt_sub <- wt_sub[wt_sub$Sample.ID %in% wt, ]
+  
+  wt_stage <- anno |>
+    filter(bcr_patient_barcode %in% wt) |>
+    rename(Sample.ID = bcr_patient_barcode) |>
+    select(Sample.ID, pathologic_stage)
+
+  wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+    mutate(group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+
+  # Unadjusted (WT cohort freq)
+  prop_tab <- prop.table(table(wt_df$group))
+  wt_unadj_weights <- data.frame(
+    group = names(prop_tab),
+    WT_unadj_prop = as.numeric(prop_tab),
+    stringsAsFactors = FALSE
+  )
+
+  # Adjusted (carriers' joint freq)
+  wt_adj_weights <- car_summary |>
+    select(
+      group,
+      WT_adj_prop = Carriers_pct
+    )
+  
+  wt_for_unadj <- wt_df |>
+    left_join(wt_unadj_weights, by = "group") |>
+    mutate(
+      WT_unadj_prop = tidyr::replace_na(WT_unadj_prop, 0),
+      WT_unadj_prop = as.numeric(WT_unadj_prop)
+    )
+
+  set.seed(42)
+  wt_unadj_draw <- sample(
+    x    = wt_for_unadj$Sample.ID,
+    size = length(ddr),
+    prob = wt_for_unadj$WT_unadj_prop
+  )
+  # wt_unadj_draw <- wt_df |>
+  #   dplyr::filter(Sample.ID %in% wt_unadj_draw) 
+  
+  # adjusted
+  wt_for_adj <- wt_df |>
+    left_join(wt_adj_weights, by = "group") |>
+    mutate(
+      WT_adj_prop = tidyr::replace_na(WT_adj_prop, 0),
+      WT_adj_prop = as.numeric(WT_adj_prop)
+    )
+
+  set.seed(42)
+  # for adjusted
+  wt_adj_draw <- sample(
+    x    = wt_for_adj$Sample.ID,
+    size = length(ddr),
+    prob = wt_for_adj$WT_adj_prop
+  )
+  # wt_adj_draw <- wt_df |>
+  #   dplyr::filter(Sample.ID %in% wt_adj_draw) 
+  
+  # wt_adj_draw <- sample(
+  #   x    = wt_for_adj$Sample.ID,
+  #   size = length(ddr),
+  #   prob = wt_for_adj$WT_adj_prop
+  # )
+
+  # Write the summary table to Excel (optional) ----
+  summary_tbl <- car_summary |>
+    full_join(wt_for_unadj |> 
+                count(group, WT_available_n = n()), by = "group") |>
+    full_join(wt_unadj_weights, by = "group") |>
+    full_join(wt_adj_weights, by = "group") |>
+    tidyr::replace_na(list(
+      Carriers_n     = 0,
+      Carriers_pct   = 0,
+      Expected_WT    = 0,
+      WT_available_n = 0,
+      WT_unadj_prop  = 0,
+      WT_adj_prop    = 0
+    )) |>
+    arrange(desc(Carriers_n))
+
+  wb <- createWorkbook()
+  addWorksheet(wb, "WT Matching Summary")
+  writeData(wb, "WT Matching Summary", summary_tbl)
+  if (!file.exists(out_xlsx)) {
+    message("Saving: ", out_xlsx)
+    saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+  } else {
+#    message("File already exists, skipping save: ", out_xlsx)
+  }
+  
+  # Return both draws as a simple list of character vectors
+  results <- list(
+    unadj = wt_unadj_draw,
+    adj   = wt_adj_draw
+  )
+
+  return (results)
 }
+
+
+
+# standardize_clinical_characteristics_breast <- function(anno, wt, ddr) {
+#   # read in subtype data
+#   subtype <- readxl::read_xlsx("data/TCGA/mmc4.xlsx", skip = 1)
+#   # subtype <- read.csv(
+#   # "data/TCGA/mmc4.xlsx",
+#   #       #"~/GermlineSomaticAssociations/genome-wide/output/somatic_gwas/pancan/driver_rate_comparison/TCGA_gyn_supplementary_table4.csv",
+#   #   as.is = TRUE,
+#   #   skip = 1
+#   # )
+#   subtype <- subtype[, c("Sample.ID", "BRCA_Subtype_PAM50")]
+#
+#
+#   # find carrier subtypes and calculate prop
+#   car_sub <- subtype[subtype$Sample.ID %in% ddr, ]
+#   car_sub_prop <- table(car_sub$BRCA_Subtype_PAM50) / nrow(car_sub)
+#   # only keep wt
+#   wt_sub <- subtype[!subtype$Sample.ID %in% ddr, ]
+#   # only keep wt that have mutation data
+#   wt_sub <- wt_sub[wt_sub$Sample.ID %in% wt, ]
+#
+#   # find carrier pathologic stage
+#   car_stage <- anno[anno$bcr_patient_barcode %in% ddr, ]
+#   car_stage_prop <- table(car_stage$pathologic_stage) / nrow(car_stage)
+#   # only keep wt
+#   wt_stage <- anno[!anno$bcr_patient_barcode %in% ddr, c("bcr_patient_barcode", "pathologic_stage")]
+#   # only keep wt that have mutation data
+#   wt_stage <- wt_stage[wt_stage$bcr_patient_barcode %in% wt, ]
+#   # merge stage and subtypes
+#   colnames(wt_stage) <- gsub("bcr_patient_barcode", "Sample.ID", colnames(wt_stage))
+#   wt_df <- merge(wt_sub, wt_stage, by = "Sample.ID")
+#   wt_df$group <- paste(wt_df$BRCA_Subtype_PAM50, wt_df$pathologic_stage, sep = "|")
+#   # get weights of each group
+#   group_weights <- as.data.frame(table(wt_df$group))
+#   colnames(group_weights) <- c("group", "prop")
+#   group_weights$prop <- group_weights$prop / nrow(wt_df)
+#   # add weights
+#   wt_df <- merge(wt_df, group_weights, by = "group")
+#   # randomly sample wt
+#   set.seed(42) # or any deterministic transformation of input
+#   wt_sample <- dplyr::sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
+#   # wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
+#   return(wt_sample$Sample.ID)
+# }
 
 standardize_clinical_characteristics_ovarian <- function(anno, wt, ddr) {
   # find carrier pathologic stage
@@ -529,16 +805,67 @@ add_subtype_and_stage <- function(df, anno, subtype = TRUE, stage = TRUE, grade 
 }
 
 ### REFROMAT STAGE ################################################################################
-reformat_stage <- function(df) {
-  # convert roman numerals to numbers
-  roman <- 1:5
-  names(roman) <- c("I", "II", "III", "IV", "X")
-  # reformat stage
-  df[df$stage == "[Not Available]", "stage"] <- NA
-  df$stage <- gsub("Stage |A|B|C", "", df$stage)
-  df$stage <- roman[df$stage]
-  return(df)
+# reformat_stage <- function(df) {
+#   # convert roman numerals to numbers
+#   roman <- 1:5
+#   names(roman) <- c("I", "II", "III", "IV", "X")
+#   # reformat stage
+#   df[df$stage == "[Not Available]", "stage"] <- NA
+#   df$stage <- gsub("Stage |A|B|C", "", df$stage)
+#   df$stage <- roman[df$stage]
+#   return(df)
+# }
+
+remove_stripping_ABC <- function(df,
+                                 col           = "stage",
+                                 missing_label = "[Not Available]") {
+  df <- df |> rename(.stage = {{col}})
+  
+  # mark missing
+  df$.stage[df$.stage == missing_label] <- NA
+  
+  # strip only trailing A, B or C in the Roman part
+  df$.stage <- gsub(
+    pattern     = "([IVXLCDM]+)[ABC]$",
+    replacement = "\\1",
+    x           = df$.stage
+  )
+  
+  # return with original column name
+  df |> rename(!!col := .stage)
 }
+
+
+
+reformat_stage <- function(
+    df,
+    col           = "stage",
+    missing_label = "[Not Available]",
+    strip_pattern = "Stage |[A-C]$",   # removes “Stage ” and any trailing A–C
+    roman_levels  = c("I","II","III","IV","X"),
+    numeric_values = seq_along(roman_levels)
+) {
+  stopifnot(length(roman_levels) == length(numeric_values))
+  
+  # 1. Rename the column to a known symbol
+  df <- df |> rename(.stage = {{col}})
+  
+  # 2. Mark missing
+  df$.stage[df$.stage == missing_label] <- NA
+  
+  # 3. Strip prefix/suffix
+  df$.stage <- gsub(strip_pattern, "", df$.stage)
+  
+  # 4. Build lookup and map
+  lookup <- setNames(numeric_values, roman_levels)
+  df$.stage <- lookup[df$.stage]
+  
+  # 5. Put back and clean up
+  df |> rename(!!col := .stage)
+  
+  return (df)
+}
+
 
 ### MUTATION RATE CNA AND SNV #####################################################################
 calculate_mut_rate_cna_snv_meth_clones <- function(anno) {

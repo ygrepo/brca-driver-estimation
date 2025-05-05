@@ -1,5 +1,7 @@
 doc/*
 data/*
+output/*
 .Rproj.user
 .RData
 .Rhistory
+.DS_Store
