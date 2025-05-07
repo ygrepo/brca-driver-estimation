@@ -8,12 +8,14 @@
 # load libraries
 library(argparse)
 library(dplyr)
+library(here)
+
+
 rm(list = ls())
 date <- Sys.Date()
-setwd("/Users/yvesgreatti/github/brca-driver-estimation")
 ### DATA PROCESSING ###############################################################################
 # read in cna data
-segments <- read.delim("data/TCGA/TCGA_mastercalls.abs_segtabs.fixed.txt.gz")
+segments <- read.delim(here("data", "TCGA", "TCGA_mastercalls.abs_segtabs.fixed.txt.gz"))
 
 # remove copy number neutral probes
 cna <- segments[which(segments$Modal_Total_CN != 2), ]
@@ -32,9 +34,11 @@ cna_num <- aggregate(cna_num$count, list(cna_num$bcr_patient_barcode), median, n
 colnames(cna_num) <- c("bcr_patient_barcode", "count")
 
 # write to file
+
+
 write.table(
   cna_num,
-  file = "data/TCGA/mutations/TCGA_segments.tsv",
+  file = here("data", "TCGA", "TCGA_segments.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -53,7 +57,7 @@ colnames(cna_bp) <- c("bcr_patient_barcode", "count")
 # write to file
 write.table(
   cna_bp,
-  file = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
+  file = here("data", "TCGA", "TCGA_total_cna_bp.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -82,42 +86,43 @@ colnames(del_dedup) <- c("bcr_patient_barcode", "count")
 # write to file
 write.table(
   del_dedup,
-  file = "data/TCGA/mutations/TCGA_segments_deletions_only.tsv",
+  file = here("data", "TCGA", "TCGA_segments_deletions_only.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
 )
 
 # count the number of deletions per patient including LOH
-segments <- read.delim("data/TCGA/TCGA_mastercalls.abs_segtabs.fixed.txt.gz")
-
-del_loh <- aggregate(
-  (segments$Modal_Total_CN < 2 & segments$LOH == 1),
-  list(segments$Sample),
-  sum
-)
-colnames(del_loh) <- c("bcr_patient_barcode", "count")
-del_loh$bcr_patient_barcode <- substr(del_loh$bcr_patient_barcode, 1, 12)
-del_loh <- del_loh[!duplicated(del_loh), ]
-del_loh_dedup <- aggregate(del_loh$count,
-  list(del_loh$bcr_patient_barcode), median,
-  na.rm = TRUE
-)
-colnames(del_loh_dedup) <- c("bcr_patient_barcode", "count")
-
-# write to file
-write.table(
-  del_loh_dedup,
-  file = "data/TCGA/mutations/TCGA_LOH_deletions.tsv",
-  sep = "\t",
-  row.names = FALSE,
-  quote = FALSE
-)
+# segments <- read.delim("data/TCGA/TCGA_mastercalls.abs_segtabs.fixed.txt.gz")
+# 
+# del_loh <- aggregate(
+#   (segments$Modal_Total_CN < 2 & segments$LOH == 1),
+#   list(segments$Sample),
+#   sum
+# )
+# colnames(del_loh) <- c("bcr_patient_barcode", "count")
+# del_loh$bcr_patient_barcode <- substr(del_loh$bcr_patient_barcode, 1, 12)
+# del_loh <- del_loh[!duplicated(del_loh), ]
+# del_loh_dedup <- aggregate(del_loh$count,
+#   list(del_loh$bcr_patient_barcode), median,
+#   na.rm = TRUE
+# )
+# colnames(del_loh_dedup) <- c("bcr_patient_barcode", "count")
+# 
+# # write to file
+# write.table(
+#   del_loh_dedup,
+#   
+#   file = "data/TCGA/mutations/TCGA_LOH_deletions.tsv",
+#   sep = "\t",
+#   row.names = FALSE,
+#   quote = FALSE
+# )
 
 
 ### CALCULATE PGA FOR EACH PATIENT ################################################################
 # read in cna data
-segments <- read.delim("data/TCGA/TCGA_mastercalls.abs_segtabs.fixed.txt.gz")
+segments <- read.delim(here("data", "TCGA", "TCGA_mastercalls.abs_segtabs.fixed.txt.gz"))
 segments <- segments[!is.na(segments$Length), ]
 
 # only keep deletions
@@ -149,47 +154,7 @@ colnames(ab_bp_dedup) <- c("bcr_patient_barcode", "count")
 # write to file
 write.table(
   ab_bp_dedup,
-  file = "data/TCGA/mutations/TCGA_cna_deletion_bp.tsv",
-  sep = "\t",
-  row.names = FALSE,
-  quote = FALSE
-)
-
-### CALCULATE PGA FOR EACH PATIENT ################################################################
-# read in cna data
-segments <- read.delim("data/TCGA/TCGA_mastercalls.abs_segtabs.fixed.txt.gz")
-segments <- segments[!is.na(segments$Length), ]
-
-# only keep deletions with LOH
-segments_del <- segments[segments$Modal_Total_CN < 2 & segments$LOH == 1, ]
-
-# count the number of abberated bases per patient
-ab_bp <- aggregate(
-  segments_del$Length,
-  list(segments_del$Sample),
-  sum
-)
-colnames(ab_bp) <- c("bcr_patient_barcode", "count")
-
-# add samples without deletion
-missing <- segments$Sample[!segments$Sample %in% ab_bp$bcr_patient_barcode]
-nodel <- data.frame(
-  bcr_patient_barcode = unique(missing),
-  count = 0
-)
-ab_bp <- rbind(ab_bp, nodel)
-# reformat id
-ab_bp$bcr_patient_barcode <- substr(ab_bp$bcr_patient_barcode, 1, 12)
-
-# remove duplicated lines and find median value for duplicated samples
-ab_bp <- ab_bp[!duplicated(ab_bp), ]
-ab_bp_dedup <- aggregate(ab_bp$count, list(ab_bp$bcr_patient_barcode), median, na.rm = TRUE)
-colnames(ab_bp_dedup) <- c("bcr_patient_barcode", "count")
-
-# write to file
-write.table(
-  ab_bp_dedup,
-  file = "data/TCGA/mutations/TCGA_LOH_deletions_bp.tsv",
+  file = here("data", "TCGA", "TCGA_cna_deletion_bp.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -200,7 +165,7 @@ write.table(
 rm(list = ls())
 
 # mc3 <- read.delim('data/MC3_Ellrott_CellSys2018/mc3.v0.2.8.CONTROLLED.maf.gz', as.is = TRUE)
-mc3 <- read.delim("data/TCGA/mc3.v0.2.8.PUBLIC.maf.gz", as.is = TRUE)
+mc3 <- read.delim(here("data", "TCGA", "/mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
 # find all samples in mc3
 all_samples <- substr(mc3$Tumor_Sample_Barcode, 1, 12)
 # subset down to deletions
@@ -226,7 +191,7 @@ indel_df <- rbind(indel_df, no_indel)
 # write to table
 write.table(
   indel_df,
-  file = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
+  file = here("data", "TCGA", "TCGA_indels_deletions_bp_only.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -255,7 +220,7 @@ ins_df <- rbind(ins_df, no_ins)
 # write to table
 write.table(
   ins_df,
-  file = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv",
+  file = here("data", "TCGA", "TCGA_indels_insertions_bp_only.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
