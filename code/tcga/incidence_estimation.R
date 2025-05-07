@@ -24,7 +24,7 @@ source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
-  argv <- c("-e", "BRCA2", "-c", "OV", "-m", "deletion")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "deletion")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -98,8 +98,8 @@ if (adj_flag) {
   adj_dir = "unadjusted"
 }
 results <- do.call(rbind, sapply(
-  1:10,
-  #1:10000,
+  #1:10,
+  1:10000,
   calculate_mutation_rate_ratio,
   date = date,
   mut_rate = mut_rate,
