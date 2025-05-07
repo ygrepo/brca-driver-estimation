@@ -1,6 +1,6 @@
 ### GET MUTATION RATE #############################################################################
 library(readxl)
-
+library(openxlsx)
 # get_mutation_rate <- function(type, anno) {
 #   if (type == "snv") {
 #     # read in somatic mutation rate
@@ -108,7 +108,7 @@ get_mutation_rate <- function(type, anno) {
     snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
     cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
     cnaseg = "data/TCGA/mutations/TCGA_segments.tsv",
-    deletion = "data/TCGA/mutations/TCGA_cna_deletion_bp.tsv",
+    deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"), 
     deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
     lohdeletion = "data/TCGA/mutations/TCGA_LOH_deletions_bp.tsv",
     lohdeletionseg = "data/TCGA/mutations/TCGA_LOH_deletions.tsv",
@@ -211,7 +211,7 @@ calculate_mutation_rate_ratio <- function(int,
   # wt_sample <- sample(wt, length(ddr), replace = TRUE)
   fn <- paste(date, cancer, gene, mutation, 
                     "mutation_rate_ratio.xlsx", sep = "_")
-  fn <- paste0("output/data/TCGA/", fn)
+  fn <- here("output", "data", "TCGA", fn)
   if (cancer == "BRCA") {
     res <- standardize_clinical_characteristics_breast(
       anno = anno,
@@ -313,7 +313,7 @@ calculate_median_est_incidence <- function() {
   return(incidence)
 }
 
-calculate_median_est_incidence_2 <- function(date, cancer, gene, mutation) {
+calculate_median_est_incidence_detail <- function(date, cancer, gene, mutation) {
   # create grid of cancer, gene and mutation type
   par <- expand.grid(
     cancer = c(cancer), gene = c(gene),
@@ -326,14 +326,16 @@ calculate_median_est_incidence_2 <- function(date, cancer, gene, mutation) {
     1,
     function(x) {
       filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
-      filename <- paste0("data/TCGA/incidence_estimates/", filename)
+      filename <- here("output", "data", "TCGA", filename)
+
       # filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
       print(filename)
       # filename <- list.files(pattern = fileflag)
       tmp <- read.delim(filename, as.is = TRUE)
       # read in observed
       # # read in observed value
-      observed <- readxl::read_xlsx("data/TCGA/SupplementaryTable01_BRCA_OVCA_SIR.xlsx", "Formated")
+      fn <- here("data", "TCGA", "SupplementaryTable01_BRCA_OVCA_SIR.xlsx")
+      observed <- readxl::read_xlsx(fn, "Formated")
       # read.delim("SupplementaryTable01_BRCA_OVCA_SIR.xlsx", as.is = TRUE)
       #      observed <- read.delim("observed_incidence_rates.tsv", as.is = TRUE)
       # extract median and CIs
@@ -345,7 +347,8 @@ calculate_median_est_incidence_2 <- function(date, cancer, gene, mutation) {
       ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
       ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
       fn <- paste(date, x["cancer"], x["gene"], x["mutation"], "segplot.tiff", sep = "_")
-      fn <- paste0("output/figures/TCGA/", fn)
+      fn <- here("output", "figures", "TCGA", fn) 
+      print(paste("Saving fig.:", fn))
       plots <- create_incidence_segplot(tmp,
         ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
         filename = fn,
@@ -636,7 +639,8 @@ standardize_clinical_characteristics_breast <- function(anno, wt, ddr,
   wt_unadj_draw <- sample(
     x    = wt_for_unadj$Sample.ID,
     size = length(ddr),
-    prob = wt_for_unadj$WT_unadj_prop
+    prob = wt_for_unadj$WT_unadj_prop,
+    replace = FALSE
   )
   # wt_unadj_draw <- wt_df |>
   #   dplyr::filter(Sample.ID %in% wt_unadj_draw) 
@@ -654,7 +658,8 @@ standardize_clinical_characteristics_breast <- function(anno, wt, ddr,
   wt_adj_draw <- sample(
     x    = wt_for_adj$Sample.ID,
     size = length(ddr),
-    prob = wt_for_adj$WT_adj_prop
+    prob = wt_for_adj$WT_adj_prop,
+    replace = FALSE
   )
   # wt_adj_draw <- wt_df |>
   #   dplyr::filter(Sample.ID %in% wt_adj_draw) 

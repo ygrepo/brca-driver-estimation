@@ -8,20 +8,22 @@
 # load libraries
 library(argparse)
 library(dplyr)
-library(tydyr)
+library(tidyr)
+library(here)
 
 
 rm(list = ls())
 date <- Sys.Date()
-setwd("/Users/yvesgreatti/github/brca-driver-estimation")
+#setwd("/Users/yvesgreatti/github/brca-driver-estimation")
 
-source("code/tcga/helper_functions.R")
+source(here("code", "tcga", "helper_functions.R"))
 
 # setwd('~/GermlineSomaticAssociations/genome-wide/output/somatic_gwas/pancan/driver_rate_comparison')
 ### OBTAIN COMMAND LINE ARGUMENTS #################################################################
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "lohdeletionseg")
+  argv <- c("-e", "BRCA2", "-c", "BRCA", "-m", "deletion")
+#  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "lohdeletionseg")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -36,16 +38,27 @@ args <- parser$parse_args(argv)
 # read in variant annotation
 var_anno <- read.delim(
   #' data/TCGA_PanCanAtlas_2018/Germline_Huang_Cell2018/TCGA_ancestry_PC.txt',
-  "data/TCGA/PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv",
+  here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
   as.is = TRUE
 )
 # find samples with variants in specified cancer
-ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer, "bcr_patient_barcode"]
+loh_flag <- FALSE
+var_anno <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer, ]
+if (loh_flag) {
+  var_anno <- var_anno[var_anno$LOH_classification == "Significant", ]
+}
+ddr <- unique(var_anno$bcr_patient_barcode)
+print(length(ddr))
+
+
+# ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer, 
+#                 "bcr_patient_barcode"]
+
 # ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer,'bcr_patient_barcode']
 
 # read in patient annotation
 pat_anno <- read.delim(
-  "data/TCGA/clinical_PANCAN_patient_with_followup.tsv",
+  here("data", "TCGA", "clinical_PANCAN_patient_with_followup.tsv"),
   as.is = TRUE
 )
 # subset down to cancer type of interest
@@ -69,21 +82,10 @@ print(paste0(
   " samples with variant in ", args$gene, ": ", length(ddr)
 ))
 
-calculate_mutation_rate_ratio(
-  int = 1,
-date = date,
-mut_rate = mut_rate,
-ddr = ddr,
-wt = wt,
-anno = can_anno,
-cancer = args$cancer,
-gene = args$gene,
-mutation = args$mutation)
-
 # run bootstrap
 results <- do.call(rbind, sapply(
-  #1:1000,
-  1:10000,
+  1:100,
+  #1:10000,
   calculate_mutation_rate_ratio,
   date = date,
   mut_rate = mut_rate,
@@ -98,9 +100,11 @@ results <- do.call(rbind, sapply(
 
 # generate file name
 filename <- paste(date, args$cancer, args$gene, args$mutation, "incidence_estimates.tsv", sep = "_")
-filename <- paste0("output/data/TCGA/", filename)
+filename <- here("output", "data", "TCGA", filename)
 
-
+print(paste0(
+  "Writing results to ", filename
+))
 # write to file
 write.table(
   results,
