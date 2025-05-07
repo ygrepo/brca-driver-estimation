@@ -165,7 +165,7 @@ write.table(
 rm(list = ls())
 
 # mc3 <- read.delim('data/MC3_Ellrott_CellSys2018/mc3.v0.2.8.CONTROLLED.maf.gz', as.is = TRUE)
-mc3 <- read.delim(here("data", "TCGA", "/mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
+mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
 # find all samples in mc3
 all_samples <- substr(mc3$Tumor_Sample_Barcode, 1, 12)
 # subset down to deletions
