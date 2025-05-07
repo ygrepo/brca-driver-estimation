@@ -13,9 +13,12 @@ source(here("code", "tcga", "helper_functions.R"))
 date <- "2025-05-07"
 #date <- "2020-05-01"
 #date <- "2025-05-06"
-cancer <- "BRCA"
+cancer <- "OV"
 gene <- "BRCA2"
 #mutation <- "lohdeletionseg"
 mutation <- "deletion"
-calculate_median_est_incidence_detail(date, cancer, gene, mutation)
+adj_flag <- FALSE
+calculate_median_est_incidence_detail(date, 
+                                      cancer, gene, mutation, 
+                                      adj_flag = adj_flag)
 

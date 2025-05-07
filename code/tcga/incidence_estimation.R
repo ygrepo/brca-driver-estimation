@@ -10,7 +10,8 @@ library(argparse)
 library(dplyr)
 library(tidyr)
 library(here)
-
+library(readxl)
+library(openxlsx)
 
 rm(list = ls())
 date <- Sys.Date()
@@ -22,8 +23,8 @@ source(here("code", "tcga", "helper_functions.R"))
 ### OBTAIN COMMAND LINE ARGUMENTS #################################################################
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA2", "-c", "BRCA", "-m", "deletion")
-#  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "lohdeletionseg")
+  #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
+  argv <- c("-e", "BRCA2", "-c", "OV", "-m", "deletion")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -57,14 +58,21 @@ print(length(ddr))
 # ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer,'bcr_patient_barcode']
 
 # read in patient annotation
-pat_anno <- read.delim(
-  here("data", "TCGA", "clinical_PANCAN_patient_with_followup.tsv"),
-  as.is = TRUE
-)
-# subset down to cancer type of interest
-can_anno <- pat_anno[pat_anno$acronym == args$cancer, ]
+# pat_anno <- read.delim(
+#   here("data", "TCGA", "clinical_PANCAN_patient_with_followup.tsv"),
+#   as.is = TRUE
+# )
+fn <- here("data", "TCGA", "TCGA-CDR-SupplementalTableS1.xlsx")
+pat_anno <- read_excel(fn, sheet = "TCGA-CDR")
+can_anno <- pat_anno[pat_anno$type == args$cancer, ]
 # only consider individuals of European descent
 can_anno <- can_anno[which(can_anno$race == "WHITE"), ]
+
+# 
+# # subset down to cancer type of interest
+# can_anno <- pat_anno[pat_anno$acronym == args$cancer, ]
+# # only consider individuals of European descent
+# can_anno <- can_anno[which(can_anno$race == "WHITE"), ]
 
 # get mutation rate
 mut_rate <- get_mutation_rate(type = args$mutation, anno = can_anno)
@@ -83,8 +91,14 @@ print(paste0(
 ))
 
 # run bootstrap
+adj_flag <- FALSE
+if (adj_flag) {
+  adj_dir = "adjusted"
+} else {
+  adj_dir = "unadjusted"
+}
 results <- do.call(rbind, sapply(
-  1:100,
+  1:10,
   #1:10000,
   calculate_mutation_rate_ratio,
   date = date,
@@ -95,16 +109,14 @@ results <- do.call(rbind, sapply(
   cancer = args$cancer,
   gene = args$gene,
   mutation = args$mutation,
+  adj_flag = adj_flag,
   simplify = FALSE
 ))
 
 # generate file name
 filename <- paste(date, args$cancer, args$gene, args$mutation, "incidence_estimates.tsv", sep = "_")
-filename <- here("output", "data", "TCGA", filename)
+filename <- here("output", "data", "TCGA", adj_dir, filename)
 
-print(paste0(
-  "Writing results to ", filename
-))
 # write to file
 write.table(
   results,
@@ -113,3 +125,7 @@ write.table(
   row.names = FALSE,
   quote = FALSE
 )
+print(paste0(
+  "Saving results to ", filename
+))
+
