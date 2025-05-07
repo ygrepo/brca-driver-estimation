@@ -91,15 +91,15 @@ print(paste0(
 ))
 
 # run bootstrap
-adj_flag <- FALSE
+adj_flag <- TRUE
 if (adj_flag) {
   adj_dir = "adjusted"
 } else {
   adj_dir = "unadjusted"
 }
 results <- do.call(rbind, sapply(
-  #1:10,
-  1:10000,
+  1:10,
+  #1:10000,
   calculate_mutation_rate_ratio,
   date = date,
   mut_rate = mut_rate,
