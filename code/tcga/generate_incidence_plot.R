@@ -10,9 +10,8 @@ date <- Sys.Date()
 source(here("code", "tcga", "helper_functions.R"))
 #source("code/tcga/helper_functions.R")
 
-date <- "2025-05-07"
 #date <- "2020-05-01"
-#date <- "2025-05-06"
+date <- "2020-04-22"
 cancer <- "OV"
 gene <- "BRCA2"
 #mutation <- "lohdeletionseg"

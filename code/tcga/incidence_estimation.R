@@ -24,7 +24,7 @@ source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "deletion")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cna")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -35,6 +35,7 @@ parser$add_argument("-e", "--gene", type = "character", help = "gene")
 parser$add_argument("-c", "--cancer", type = "character", help = "cancer type")
 parser$add_argument("-m", "--mutation", type = "character", help = "mutation type")
 args <- parser$parse_args(argv)
+print(args)
 ### DATA PROCESSING ###############################################################################
 # read in variant annotation
 var_anno <- read.delim(
@@ -58,13 +59,14 @@ print(length(ddr))
 # ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer,'bcr_patient_barcode']
 
 # read in patient annotation
-# pat_anno <- read.delim(
-#   here("data", "TCGA", "clinical_PANCAN_patient_with_followup.tsv"),
-#   as.is = TRUE
-# )
-fn <- here("data", "TCGA", "TCGA-CDR-SupplementalTableS1.xlsx")
-pat_anno <- read_excel(fn, sheet = "TCGA-CDR")
-can_anno <- pat_anno[pat_anno$type == args$cancer, ]
+pat_anno <- read.delim(
+  here("data", "TCGA", "clinical_PANCAN_patient_with_followup.tsv"),
+  as.is = TRUE
+)
+# fn <- here("data", "TCGA", "TCGA-CDR-SupplementalTableS1.xlsx")
+# pat_anno <- read_excel(fn, sheet = "TCGA-CDR")
+#can_anno <- pat_anno[pat_anno$type == args$cancer, ]
+can_anno <- pat_anno[pat_anno$acronym == args$cancer,]
 # only consider individuals of European descent
 can_anno <- can_anno[which(can_anno$race == "WHITE"), ]
 
@@ -91,7 +93,7 @@ print(paste0(
 ))
 
 # run bootstrap
-adj_flag <- TRUE
+adj_flag <- FALSE
 if (adj_flag) {
   adj_dir = "adjusted"
 } else {
