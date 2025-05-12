@@ -102,6 +102,18 @@
 
 get_mutation_rate <- function(type, anno) {
   # Mapping of mutation types to file paths
+  # file_map <- list(
+  #   snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
+  #   cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
+  #   cnaseg = "data/TCGA/mutations/TCGA_segments.tsv",
+  #   deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"),
+  #   deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+  #   indel = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
+  #   indelseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
+  #   amplification = "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
+  #   amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
+  #   insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
+  # )
   file_map <- list(
     snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
     cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
@@ -114,7 +126,7 @@ get_mutation_rate <- function(type, anno) {
     amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
     insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
   )
-
+  
   cat("Reading mutation data for type:", type, "\n")
   if (type %in% names(file_map)) {
     fn <- file_map[[type]]
@@ -143,160 +155,155 @@ get_mutation_rate <- function(type, anno) {
   mut <- aggregate(mut$count, by = list(mut$bcr_patient_barcode), FUN = median, na.rm = TRUE)
   colnames(mut) <- c("bcr_patient_barcode", "count")
 
-  # Merge with clinical annotation and compute mutation rate
   mut_rate <- merge(
-    mut,
-    anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
-    by = "bcr_patient_barcode"
+    mut[,c('count','bcr_patient_barcode')],
+    anno[,c('bcr_patient_barcode','age_at_initial_pathologic_diagnosis')],
+    by = 'bcr_patient_barcode'
   )
-  mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
+  mut_rate$rate <- mut_rate$count/as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
   rownames(mut_rate) <- mut_rate$bcr_patient_barcode
-
   return(mut_rate)
+  # 
+  # # Merge with clinical annotation and compute mutation rate
+  # mut_rate <- merge(
+  #   mut,
+  #   anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
+  #   by = "bcr_patient_barcode"
+  # )
+  # mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
+  # rownames(mut_rate) <- mut_rate$bcr_patient_barcode
+  # 
+  # return(mut_rate)
 }
 
 ### CALCULATE MUTATION RATE RATIO #################################################################
-# calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
-# 	# sample ddr and non ddr samples
-# 	ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
-# 	#wt_sample <- sample(wt, length(ddr), replace = TRUE)
-# 	if (cancer == 'BRCA') {
-# 		wt_sample <- standardize_clinical_characteristics_breast(
-# 			anno = anno,
-# 			wt = wt,
-# 			ddr = ddr
-# 			)
-# 	} else if (cancer == 'OV') {
-# 		wt_sample <- standardize_clinical_characteristics_ovarian(
-# 			anno = anno,
-# 			wt = wt,
-# 			ddr = ddr
-# 			)
-# 	} else {
-# 		stop("Please specify a valid cancer type. Options are BRCA or OV ...")
-# 		}
-#
-# 	# calculate median mutation rate of ddr and non ddr samples
-# 	ddr_median <- median(mut_rate[ddr_sample,'rate'])
-# 	wt_median <- median(mut_rate[wt_sample,'rate'])
-#
-# 	# calculate ratio
-# 	ddr_ratio <- ddr_median/wt_median
-#
-# 	# calculate ratios
-# 	data.frame(
-# 		int = int,
-# 		num = length(ddr),
-# 		wt_median = wt_median,
-# 		ddr_median = ddr_median,
-# 		ratio = ddr_ratio,
-# 		incidence_two = ddr_ratio*ddr_ratio,
-# 		incidence_three = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2)),
-# 		incidence_four = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3)),
-# 		incidence_five = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4)),
-# 		incidence_six = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5)),
-# 		incidence_seven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6)),
-# 		incidence_eight = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7)),
-# 		incidence_nine = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8)),
-# 		incidence_ten = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9)),
-# 		incidence_eleven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10)),
-# 		incidence_twelve = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11)),
-# 		incidence_thirteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12)),
-# 		incidence_fourteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13)),
-# 		incidence_fifteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14)),
-# 		incidence_sixteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14))*(ddr_ratio^(1/15))
-# 		)
-# }
-
-calculate_mutation_rate_ratio <- function(int,
-                                          date,
-                                          mut_rate,
-                                          ddr,
-                                          wt,
-                                          anno,
-                                          cancer,
-                                          gene,
-                                          mutation,
-                                          adj_flag = TRUE) {
-  # sample ddr and non ddr samples
+calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt) {
+  # sample ddr and non ddr samples 
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
-  # wt_sample <- sample(wt, length(ddr), replace = TRUE)
-  fn <- paste(date, cancer, gene, mutation,
-    "mutation_rate_ratio.xlsx",
-    sep = "_"
-  )
-  if (adj_flag) {
-    adj_dir <- "adjusted"
-  } else {
-    adj_dir <- "unadjusted"
-  }
-  fn <- here("output", "data", "TCGA", adj_dir, fn)
-  if (cancer == "BRCA") {
-    res <- standardize_clinical_characteristics_breast(
-      anno = anno,
-      wt = wt,
-      ddr = ddr
-      # out_xlsx = fn
-    )
-    wt_sample <- res
-    # if (adj_flag) {
-    #   print("Using adjusted weights")
-    #   wt_sample <- res$adj
-    # } else {
-    #   print("Using unadjusted weights")
-    #   wt_sample <- res$unadj
-    # }
-  } else if (cancer == "OV") {
-    res <- standardize_clinical_characteristics_ovarian(
-      anno = anno,
-      wt = wt,
-      ddr = ddr
-      # out_xlsx = fn
-    )
-    wt_sample <- res
-    # if (adj_flag) {
-    #   print("Using adjusted weights")
-    #   wt_sample <- res$adj
-    # } else {
-    #   print("Using unadjusted weights")
-    #   wt_sample <- res$unadj
-    # }
-  } else {
-    stop("Please specify a valid cancer type. Options are BRCA or OV ...")
-  }
-
-  # calculate median mutation rate of ddr and non ddr samples
-  ddr_median <- median(mut_rate[ddr_sample, "rate"])
-  wt_median <- median(mut_rate[wt_sample, "rate"], na.rm = TRUE)
-
-  # calculate ratio
-  ddr_ratio <- ddr_median / wt_median
-
-  # calculate ratios
-  df <- data.frame(
+  wt_sample <- sample(wt, length(ddr), replace = TRUE)
+  
+  # calculate median mutation rate of ddr and non ddr samples 
+  ddr_median <- median(mut_rate[ddr_sample,'rate'])
+  wt_median <- median(mut_rate[wt_sample,'rate'])
+  
+  # calculate ratio 
+  ddr_ratio <- ddr_median/wt_median
+  
+  # calculate ratios 
+  data.frame(
     int = int,
     num = length(ddr),
     wt_median = wt_median,
     ddr_median = ddr_median,
     ratio = ddr_ratio,
-    incidence_two = ddr_ratio * ddr_ratio,
-    incidence_three = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)),
-    incidence_four = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)),
-    incidence_five = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)),
-    incidence_six = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)),
-    incidence_seven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)),
-    incidence_eight = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)),
-    incidence_nine = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)),
-    incidence_ten = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)),
-    incidence_eleven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)),
-    incidence_twelve = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)),
-    incidence_thirteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)),
-    incidence_fourteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)),
-    incidence_fifteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)),
-    incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
+    incidence_two = ddr_ratio*ddr_ratio,
+    incidence_three = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2)),
+    incidence_four = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3)),
+    incidence_five = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4)),
+    incidence_six = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5)),
+    incidence_seven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6)),
+    incidence_eight = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7)),
+    incidence_nine = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8)),
+    incidence_ten = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9)),
+    incidence_eleven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10)),
+    incidence_twelve = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11)),
+    incidence_thirteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12)),
+    incidence_fourteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13)),
+    incidence_fifteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14)),
+    incidence_sixteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14))*(ddr_ratio^(1/15))
   )
-  return(df)
 }
+
+
+# calculate_mutation_rate_ratio <- function(int,
+#                                           date,
+#                                           mut_rate,
+#                                           ddr,
+#                                           wt,
+#                                           anno,
+#                                           cancer,
+#                                           gene,
+#                                           mutation,
+#                                           adj_flag = TRUE) {
+#   # sample ddr and non ddr samples
+#   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
+#   # wt_sample <- sample(wt, length(ddr), replace = TRUE)
+#   fn <- paste(date, cancer, gene, mutation,
+#     "mutation_rate_ratio.xlsx",
+#     sep = "_"
+#   )
+#   if (adj_flag) {
+#     adj_dir <- "adjusted"
+#   } else {
+#     adj_dir <- "unadjusted"
+#   }
+#   fn <- here("output", "data", "TCGA", adj_dir, fn)
+#   if (cancer == "BRCA") {
+#     res <- standardize_clinical_characteristics_breast(
+#       anno = anno,
+#       wt = wt,
+#       ddr = ddr
+#       # out_xlsx = fn
+#     )
+#     wt_sample <- res
+#     # if (adj_flag) {
+#     #   print("Using adjusted weights")
+#     #   wt_sample <- res$adj
+#     # } else {
+#     #   print("Using unadjusted weights")
+#     #   wt_sample <- res$unadj
+#     # }
+#   } else if (cancer == "OV") {
+#     res <- standardize_clinical_characteristics_ovarian(
+#       anno = anno,
+#       wt = wt,
+#       ddr = ddr
+#       # out_xlsx = fn
+#     )
+#     wt_sample <- res
+#     # if (adj_flag) {
+#     #   print("Using adjusted weights")
+#     #   wt_sample <- res$adj
+#     # } else {
+#     #   print("Using unadjusted weights")
+#     #   wt_sample <- res$unadj
+#     # }
+#   } else {
+#     stop("Please specify a valid cancer type. Options are BRCA or OV ...")
+#   }
+# 
+#   # calculate median mutation rate of ddr and non ddr samples
+#   ddr_median <- median(mut_rate[ddr_sample, "rate"])
+#   wt_median <- median(mut_rate[wt_sample, "rate"], na.rm = TRUE)
+# 
+#   # calculate ratio
+#   ddr_ratio <- ddr_median / wt_median
+# 
+#   # calculate ratios
+#   df <- data.frame(
+#     int = int,
+#     num = length(ddr),
+#     wt_median = wt_median,
+#     ddr_median = ddr_median,
+#     ratio = ddr_ratio,
+#     incidence_two = ddr_ratio * ddr_ratio,
+#     incidence_three = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)),
+#     incidence_four = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)),
+#     incidence_five = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)),
+#     incidence_six = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)),
+#     incidence_seven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)),
+#     incidence_eight = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)),
+#     incidence_nine = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)),
+#     incidence_ten = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)),
+#     incidence_eleven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)),
+#     incidence_twelve = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)),
+#     incidence_thirteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)),
+#     incidence_fourteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)),
+#     incidence_fifteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)),
+#     incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
+#   )
+#   return(df)
+# }
 
 
 ### CALCULATE MEDIAN ESTIMATED INCIDENCES #########################################################
@@ -684,10 +691,14 @@ calculate_median_est_incidence_detail <- function(date,
     mutation <- x["mutation"]
 
     # Construct input/output paths
-    infile <- here("data", "TCGA", 
+    infile <- here("output/data", "TCGA", 
                    adj_dir, 
                    paste(date, cancer, gene, mutation, "incidence_estimates.tsv", 
                          sep = "_"))
+    # infile <- here("data", "TCGA", 
+    #                adj_dir, 
+    #                paste(date, cancer, gene, mutation, "incidence_estimates.tsv", 
+    #                      sep = "_"))
     plotfile <- here("output", "figures", "TCGA", 
                      adj_dir, paste(date, cancer, gene, mutation, 
                                     "segplot.tiff", sep = "_"))

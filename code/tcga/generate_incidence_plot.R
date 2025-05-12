@@ -10,13 +10,13 @@ date <- Sys.Date()
 source(here("code", "tcga", "helper_functions.R"))
 #source("code/tcga/helper_functions.R")
 
-#date <- "2020-05-01"
-date <- "2020-04-22"
-cancer <- "OV"
-gene <- "BRCA2"
+date <- "2020-05-01"
+#date <- "2020-04-22"
+cancer <- "BRCA"
+gene <- "BRCA1"
 #mutation <- "lohdeletionseg"
-mutation <- "deletion"
-adj_flag <- FALSE
+mutation <- "cnaseg"
+adj_flag <- TRUE
 calculate_median_est_incidence_detail(date, 
                                       cancer, gene, mutation, 
                                       adj_flag = adj_flag)
