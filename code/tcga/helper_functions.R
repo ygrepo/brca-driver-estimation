@@ -406,8 +406,8 @@ create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, m
   #   num = 1:length(mean_inc), mean = mean_inc,
   #   L95 = CI_inc[1, ], U95 = CI_inc[2, ]
   # )
-  #plot_data <- data.frame(num = 1:(length(mean_inc)), mean = mean_inc, CI = CI_inc)
-  plot_data <- data.frame(num = 2:(length(mean_inc)+1), mean = mean_inc, CI = CI_inc)
+  plot_data <- data.frame(num = 1:(length(mean_inc)), mean = mean_inc, CI = CI_inc)
+  #plot_data <- data.frame(num = 2:(length(mean_inc)+1), mean = mean_inc, CI = CI_inc)
   plot_data$L95 <- plot_data$mean-plot_data$CI
   plot_data$U95 <- plot_data$mean+plot_data$CI
   # set maximum xlimits
@@ -447,7 +447,7 @@ create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, m
     y.error.up = plot_data$U95 - plot_data$mean,
     y.error.down = plot_data$mean - plot_data$L95,
     resolution = 300,
-    add.rectangle = FALSE,
+    add.rectangle = TRUE,
     alpha.rectangle = 0.5,
     col.rectangle = "grey",
     xleft.rectangle = 0,
