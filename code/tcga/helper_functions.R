@@ -117,7 +117,7 @@ get_mutation_rate <- function(type, anno) {
   file_map <- list(
     snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
     cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
-    cnaseg = "data/TCGA/mutations/TCGA_segments.tsv",
+    cnaseg = here("data", "TCGA", "mutations", "TCGA_segments.tsv"),
     deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"),
     deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
     indel = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
