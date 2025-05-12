@@ -68,10 +68,10 @@ var_anno <- read.delim(
 )
 table(var_anno$Overall_Classification)
 
-var_anno <- var_anno |>
-  filter(Overall_Classification == "Pathogenic" |
-           Overall_Classification == "Likely Pathogenic") 
-  
+# var_anno <- var_anno |>
+#   filter(Overall_Classification == "Pathogenic" |
+#            Overall_Classification == "Likely Pathogenic") 
+#   
 # find sample
 
 # find samples with variants in specified cancer
@@ -113,6 +113,8 @@ results <- do.call(rbind, sapply(
 	mut_rate = mut_rate,
 	ddr = ddr,
 	wt = wt,
+  anno = can_anno,
+  cancer = args$cancer,
 	simplify = FALSE
 	))
 
