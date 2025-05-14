@@ -44,14 +44,11 @@ print(args)
 var_anno <- read.delim(
   #' data/TCGA_PanCanAtlas_2018/Germline_Huang_Cell2018/TCGA_ancestry_PC.txt',
   here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
+  #here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
   as.is = TRUE
 )
 # find samples with variants in specified cancer
-loh_flag <- FALSE
 var_anno <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer, ]
-if (loh_flag) {
-  var_anno <- var_anno[var_anno$LOH_classification == "Significant", ]
-}
 ddr <- unique(var_anno$bcr_patient_barcode)
 print(length(ddr))
 

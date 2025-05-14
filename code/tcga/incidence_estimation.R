@@ -42,7 +42,7 @@ source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
-  argv <- c("-e", "BRCA2", "-c", "BRCA", "-m", "cnaseg")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -66,7 +66,7 @@ var_anno <- read.delim(
   here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
   as.is = TRUE
 )
-table(var_anno$Overall_Classification)
+#table(var_anno$Overall_Classification)
 
 # var_anno <- var_anno |>
 #   filter(Overall_Classification == "Pathogenic" |
@@ -89,7 +89,21 @@ pat_anno <- read.delim(
 # 	)
 # subset down to cancer type of interest
 can_anno <- pat_anno[pat_anno$acronym == args$cancer,]
-can_anno <- can_anno[which(can_anno$race == "WHITE"), ]
+
+# Select European only ----
+target_ancestry <- readxl::read_xlsx(here("data", "TCGA", "mmc2.xlsx"), 
+                                     "S1 Calls per Patient", skip = 1)
+table(target_ancestry$consensus_ancestry)
+
+target_ancestry <- target_ancestry |>
+  select(patient, consensus_ancestry) |>
+  filter(consensus_ancestry == "eur") 
+
+length(intersect(target_ancestry$patient, can_anno$bcr_patient_barcode))
+can_anno <- can_anno |>
+  filter(bcr_patient_barcode %in% target_ancestry$patient)
+
+#can_anno <- can_anno[which(can_anno$race == "WHITE"), ]
 
 # get mutation rate 
 mut_rate <- get_mutation_rate(type = args$mutation, anno = can_anno)
