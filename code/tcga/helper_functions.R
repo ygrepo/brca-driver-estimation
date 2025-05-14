@@ -627,7 +627,9 @@ test_mutation_rate <- function(df) {
 }
 
 ### GENERATE INCIDENCE PLOTS ##########################################################
-get_plot_limits <- function(cancer, mutation, gene, adj_flag) {
+get_plot_limits <- function(cancer, mutation, gene) {
+  adj_flag <- ifelse(mutation %in% c("cnaseg", "deletionseg"), TRUE, FALSE)
+  
   if (adj_flag) {
     limits_table <- tibble::tibble(
       cancer = c(
@@ -775,7 +777,7 @@ calculate_median_est_incidence_detail <- function(date,
 
 
     # Plot configuration
-    limits <- get_plot_limits(cancer, mutation, gene, adj_flag)
+    limits <- get_plot_limits(cancer, mutation, gene)
     driver_max <- limits$driver_max
     ylimits <- limits$ylimits
     yat <- limits$yat
