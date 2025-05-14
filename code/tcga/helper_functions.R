@@ -740,7 +740,7 @@ calculate_median_est_incidence_detail <- function(date,
     driver_max <- limits$driver_max
     ylimits <- limits$ylimits
     yat <- limits$yat
-    plotfile <- here("output", "figures", "TCGA", 
+    plotfile <- here("output", "figures", "TCGA/minerva_figures/Everyone", 
                      paste(date, cancer, gene, mutation, 
                            "segplot.tiff", sep = "_"))
     print(paste("Saving fig.:", plotfile))
