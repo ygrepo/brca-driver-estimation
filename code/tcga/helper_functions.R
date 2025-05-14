@@ -197,7 +197,7 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
   #   stop("Please specify a valid cancer type. Options are BRCA or OV ...")
   # }
   #
-  wt_sample <- sample(wt, length(ddr), replace = FALSE)
+  wt_sample <- sample(wt, length(ddr), replace = TRUE)
 
   # calculate median mutation rate of ddr and non ddr samples
   ddr_median <- median(mut_rate[ddr_sample, "rate"])
