@@ -750,7 +750,7 @@ calculate_median_est_incidence_detail <- function(date,
 
     # Construct input/output paths
     infile <- here(
-      "output/data", "TCGA",
+      "output/data", "TCGA/European",
       paste(date, cancer, gene, mutation, "incidence_estimates.tsv",
         sep = "_"
       )
