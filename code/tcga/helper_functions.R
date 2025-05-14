@@ -179,7 +179,7 @@ get_mutation_rate <- function(type, anno) {
 ### CALCULATE MUTATION RATE RATIO #################################################################
 calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
   # sample ddr and non ddr samples
-  #set.seed(42)  # You can choose any integer seed value
+  set.seed(42)  # You can choose any integer seed value
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   # if (cancer == 'BRCA') {
   #   wt_sample <- standardize_clinical_characteristics_breast(
@@ -197,7 +197,7 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
   #   stop("Please specify a valid cancer type. Options are BRCA or OV ...")
   # }
   #
-  wt_sample <- sample(wt, length(ddr), replace = TRUE)
+  wt_sample <- sample(wt, length(ddr), replace = FALSE)
 
   # calculate median mutation rate of ddr and non ddr samples
   ddr_median <- median(mut_rate[ddr_sample, "rate"])
@@ -775,7 +775,7 @@ calculate_median_est_incidence_detail <- function(date,
     message("n: ", ob_n)
 
     ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
-    #set.seed(42)
+    set.seed(42)
     ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
 
 
@@ -785,7 +785,7 @@ calculate_median_est_incidence_detail <- function(date,
     ylimits <- limits$ylimits
     yat <- limits$yat
     plotfile <- here(
-      "output", "figures", "TCGA/minerva_figures/European",
+      "output", "figures", "TCGA/European",
       paste(date, cancer, gene, mutation,
         "segplot.tiff",
         sep = "_"

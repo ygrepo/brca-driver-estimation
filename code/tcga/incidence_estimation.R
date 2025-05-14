@@ -42,7 +42,7 @@ source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cna")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
