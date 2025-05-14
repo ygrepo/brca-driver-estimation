@@ -732,10 +732,9 @@ get_plot_limits <- function(cancer, mutation, gene, adj_flag) {
 calculate_median_est_incidence_detail <- function(date,
                                                   cancer,
                                                   gene,
-                                                  mutation,
-                                                  adj_flag = TRUE) {
-  adj_dir <- if (adj_flag) "adjusted" else "unadjusted"
-  message("Using ", adj_dir, " weights")
+                                                  mutation) {
+  # adj_dir <- if (adj_flag) "adjusted" else "unadjusted"
+  # message("Using ", adj_dir, " weights")
 
   # Define parameter combinations
   params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation)

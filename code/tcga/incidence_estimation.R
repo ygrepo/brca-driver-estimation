@@ -16,7 +16,7 @@ library(openxlsx)
 rm(list = ls())
 date <- Sys.Date()
 #date <-  "2020-04-22"
-date <- "2020-05-01"
+#date <- "2020-05-01"
 
 #setwd("/Users/yvesgreatti/github/brca-driver-estimation")
 
