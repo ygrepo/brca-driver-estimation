@@ -121,13 +121,7 @@ results <- do.call(rbind, sapply(
 
 # generate file name 
 filename <- paste(date, args$cancer, args$gene, args$mutation, "incidence_estimates.tsv", sep = "_")
-adj_flag <- TRUE
-if (adj_flag) {
-  adj_dir = "adjusted"
-} else {
-  adj_dir = "unadjusted"
-}
-filename <- here("output", "data", "TCGA", adj_dir, filename)
+filename <- here("output", "data", "TCGA", filename)
 
 # write to file
 write.table(

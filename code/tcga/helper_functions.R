@@ -714,17 +714,8 @@ calculate_median_est_incidence_detail <- function(date,
 
     # Construct input/output paths
     infile <- here("output/data", "TCGA", 
-                   adj_dir, 
                    paste(date, cancer, gene, mutation, "incidence_estimates.tsv", 
                          sep = "_"))
-    # infile <- here("data", "TCGA", 
-    #                adj_dir, 
-    #                paste(date, cancer, gene, mutation, "incidence_estimates.tsv", 
-    #                      sep = "_"))
-    plotfile <- here("output", "figures", "TCGA", 
-                     adj_dir, paste(date, cancer, gene, mutation, 
-                                    "segplot.tiff", sep = "_"))
-
     message("Reading file: ", infile)
     
 
@@ -749,6 +740,9 @@ calculate_median_est_incidence_detail <- function(date,
     driver_max <- limits$driver_max
     ylimits <- limits$ylimits
     yat <- limits$yat
+    plotfile <- here("output", "figures", "TCGA", 
+                     paste(date, cancer, gene, mutation, 
+                           "segplot.tiff", sep = "_"))
     print(paste("Saving fig.:", plotfile))
 
     create_incidence_segplot(est_data, ob_median, ob_L95, ob_U95,
