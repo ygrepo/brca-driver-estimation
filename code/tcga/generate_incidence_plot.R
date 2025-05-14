@@ -36,7 +36,7 @@ print(args)
 #mutation <- "cnaseg"
 #adj_flag <- TRUE
 calculate_median_est_incidence_detail(date, 
-                                      args$cancer, arg$gene, arg$mutation)
+                                      args$cancer, args$gene, args$mutation)
 # , 
 #                                       adj_flag = adj_flag)
 
