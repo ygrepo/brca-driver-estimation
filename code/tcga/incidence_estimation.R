@@ -121,7 +121,7 @@ results <- do.call(rbind, sapply(
 
 # generate file name 
 filename <- paste(date, args$cancer, args$gene, args$mutation, "incidence_estimates.tsv", sep = "_")
-filename <- here("output", "data", "TCGA", filename)
+filename <- here("output", "data", "TCGA/European", filename)
 
 # write to file
 write.table(
