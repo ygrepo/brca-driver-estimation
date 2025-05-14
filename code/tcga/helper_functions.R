@@ -116,7 +116,7 @@ get_mutation_rate <- function(type, anno) {
   # )
   file_map <- list(
     snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
-    cna = here("data", "TCGA", "mutations",  "TCGA_total_cna_bp.tsv"),
+    cna = here("data", "TCGA", "mutations", "TCGA_total_cna_bp.tsv"),
     cnaseg = here("data", "TCGA", "mutations", "TCGA_segments.tsv"),
     deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"),
     deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
@@ -126,7 +126,7 @@ get_mutation_rate <- function(type, anno) {
     amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
     insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
   )
-  
+
   cat("Reading mutation data for type:", type, "\n")
   if (type %in% names(file_map)) {
     fn <- file_map[[type]]
@@ -156,14 +156,14 @@ get_mutation_rate <- function(type, anno) {
   colnames(mut) <- c("bcr_patient_barcode", "count")
 
   mut_rate <- merge(
-    mut[,c('count','bcr_patient_barcode')],
-    anno[,c('bcr_patient_barcode','age_at_initial_pathologic_diagnosis')],
-    by = 'bcr_patient_barcode'
+    mut[, c("count", "bcr_patient_barcode")],
+    anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
+    by = "bcr_patient_barcode"
   )
-  mut_rate$rate <- mut_rate$count/as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
+  mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
   rownames(mut_rate) <- mut_rate$bcr_patient_barcode
   return(mut_rate)
-  # 
+  #
   # # Merge with clinical annotation and compute mutation rate
   # mut_rate <- merge(
   #   mut,
@@ -172,63 +172,63 @@ get_mutation_rate <- function(type, anno) {
   # )
   # mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
   # rownames(mut_rate) <- mut_rate$bcr_patient_barcode
-  # 
+  #
   # return(mut_rate)
 }
 
 ### CALCULATE MUTATION RATE RATIO #################################################################
 calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
-  # sample ddr and non ddr samples 
-  #set.seed(2025)  # You can choose any integer seed value
-  
+  # sample ddr and non ddr samples
+  # set.seed(2025)  # You can choose any integer seed value
+
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   # if (cancer == 'BRCA') {
   #   wt_sample <- standardize_clinical_characteristics_breast(
-  #     anno = anno, 
+  #     anno = anno,
   #     wt = wt,
   #     ddr = ddr
   #   )
   # } else if (cancer == 'OV') {
   #   wt_sample <- standardize_clinical_characteristics_ovarian(
-  #     anno = anno, 
+  #     anno = anno,
   #     wt = wt,
   #     ddr = ddr
   #   )
   # } else {
   #   stop("Please specify a valid cancer type. Options are BRCA or OV ...")
   # }
-  # 
+  #
   wt_sample <- sample(wt, length(ddr), replace = TRUE)
-  
-  # calculate median mutation rate of ddr and non ddr samples 
-  ddr_median <- median(mut_rate[ddr_sample,'rate'])
-  wt_median <- median(mut_rate[wt_sample,'rate'])
-  
-  # calculate ratio 
-  ddr_ratio <- ddr_median/wt_median
-  
-  # calculate ratios 
+
+  # calculate median mutation rate of ddr and non ddr samples
+  ddr_median <- median(mut_rate[ddr_sample, "rate"])
+  wt_median <- median(mut_rate[wt_sample, "rate"])
+
+  # calculate ratio
+  ddr_ratio <- ddr_median / wt_median
+
+  # calculate ratios
   data.frame(
     int = int,
     num = length(ddr),
     wt_median = wt_median,
     ddr_median = ddr_median,
     ratio = ddr_ratio,
-    incidence_two = ddr_ratio*ddr_ratio,
-    incidence_three = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2)),
-    incidence_four = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3)),
-    incidence_five = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4)),
-    incidence_six = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5)),
-    incidence_seven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6)),
-    incidence_eight = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7)),
-    incidence_nine = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8)),
-    incidence_ten = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9)),
-    incidence_eleven = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10)),
-    incidence_twelve = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11)),
-    incidence_thirteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12)),
-    incidence_fourteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13)),
-    incidence_fifteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14)),
-    incidence_sixteen = ddr_ratio*ddr_ratio*(ddr_ratio^(1/2))*(ddr_ratio^(1/3))*(ddr_ratio^(1/4))*(ddr_ratio^(1/5))*(ddr_ratio^(1/6))*(ddr_ratio^(1/7))*(ddr_ratio^(1/8))*(ddr_ratio^(1/9))*(ddr_ratio^(1/10))*(ddr_ratio^(1/11))*(ddr_ratio^(1/12))*(ddr_ratio^(1/13))*(ddr_ratio^(1/14))*(ddr_ratio^(1/15))
+    incidence_two = ddr_ratio * ddr_ratio,
+    incidence_three = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)),
+    incidence_four = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)),
+    incidence_five = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)),
+    incidence_six = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)),
+    incidence_seven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)),
+    incidence_eight = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)),
+    incidence_nine = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)),
+    incidence_ten = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)),
+    incidence_eleven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)),
+    incidence_twelve = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)),
+    incidence_thirteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)),
+    incidence_fourteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)),
+    incidence_fifteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)),
+    incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
   )
 }
 
@@ -289,14 +289,14 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
 #   } else {
 #     stop("Please specify a valid cancer type. Options are BRCA or OV ...")
 #   }
-# 
+#
 #   # calculate median mutation rate of ddr and non ddr samples
 #   ddr_median <- median(mut_rate[ddr_sample, "rate"])
 #   wt_median <- median(mut_rate[wt_sample, "rate"], na.rm = TRUE)
-# 
+#
 #   # calculate ratio
 #   ddr_ratio <- ddr_median / wt_median
-# 
+#
 #   # calculate ratios
 #   df <- data.frame(
 #     int = int,
@@ -391,15 +391,15 @@ run_ks_test <- function(df, ob_dist) {
   return(stats)
 }
 
-create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, main,
+create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filename, main,
                                      driver_max = NULL, yat = NULL, ylimits = NULL) {
   # create CI for bootstrap
   mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, mean)
-  #mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
+  # mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
   sd_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, sd)
   CI_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, calculate_CIs)
-  #CI_inc <- 1.96*(sd_inc/sqrt(nrow(tmp)))
-  
+  # CI_inc <- 1.96*(sd_inc/sqrt(nrow(tmp)))
+
 
   plot_data <- data.frame(
     num = 1:length(mean_inc), mean = mean_inc,
@@ -429,9 +429,23 @@ create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, m
   }
 
   # set xlab
-  mut <- gsub("seg", "", strsplit(filename, "_")[[1]][4])
-  labels <- c("Number SNV drivers", "Number CNA drivers", "Number CNA deletion drivers", "Number CNA gain drivers", "Number small deletion drivers")
-  names(labels) <- c("snv", "cna", "deletion", "amplification", "indel")
+  # mut <- gsub("seg", "", strsplit(filename, "_")[[1]][4])
+  labels <- c(
+    "Number SNV drivers",
+    "Number CNA drivers",
+    "Number CNA drivers",
+    "Number CNA deletion drivers",
+    "Number CNA gain drivers",
+    "Number small deletion drivers"
+  )
+  names(labels) <- c(
+    "snv",
+    "cnaseg",
+    "cna",
+    "deletion",
+    "amplification",
+    "indel"
+  )
   # create segplot
   create.scatterplot(
     mean ~ num,
@@ -616,70 +630,93 @@ test_mutation_rate <- function(df) {
 get_plot_limits <- function(cancer, mutation, gene, adj_flag) {
   if (adj_flag) {
     limits_table <- tibble::tibble(
-      cancer      = c("BRCA", "BRCA", "OV", "OV",
-                      "BRCA", "BRCA", "OV", "OV"),
-      mutation    = c("cnaseg", "cnaseg", "cnaseg", "cnaseg",
-                      "deletionseg", "deletionseg", "deletionseg", "deletionseg"),
-      gene        = c("BRCA1", "BRCA2", 
-                      "BRCA1", "BRCA2",
-                      "BRCA1", "BRCA2",
-                      "BRCA1", "BRCA2"),
-      driver_max  = c(5, 15, 
-                      15, 15,
-                      15, 15,
-                      15,15),
-      ylimits     = c(100, 100, 75, 100,
-                      100,100, 100, 100),
-      yat         = list(c(0, 25, 50, 75, 100), 
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100),
-                         c(0, 25, 50, 75, 100))
+      cancer = c(
+        "BRCA", "BRCA", "OV", "OV",
+        "BRCA", "BRCA", "OV", "OV"
+      ),
+      mutation = c(
+        "cnaseg", "cnaseg", "cnaseg", "cnaseg",
+        "deletionseg", "deletionseg", "deletionseg", "deletionseg"
+      ),
+      gene = c(
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2"
+      ),
+      driver_max = c(
+        5, 15,
+        15, 15,
+        15, 15,
+        15, 15
+      ),
+      ylimits = c(
+        100, 100, 75, 100,
+        100, 100, 100, 100
+      ),
+      yat = list(
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100),
+        c(0, 25, 50, 75, 100)
+      )
     )
   } else {
     limits_table <- tibble::tibble(
-      cancer      = c("BRCA", "BRCA", "OV", "OV",
-                      "BRCA", "BRCA", "OV", "OV"),
-      mutation    = c("cna", "cna", "cna", "cna",
-                      "deletion", "deletion", "deletion", "deletion"),
-      gene        = c("BRCA1", "BRCA2", 
-                      "BRCA1", "BRCA2",
-                      "BRCA1", "BRCA2",
-                      "BRCA1", "BRCA2"),
-      driver_max  = c(15, 15, # cna
-                      15, 15,
-                      15, 5, # deletion
-                      5,15),    
-      ylimits     = c(80, 20, 75, 25,
-                      200, 250, 600, 200),
-      yat         = list(c(0, 20, 40, 60, 80), # cna start
-                         c(0, 5, 10, 15, 20),
-                         c(0,25,50,75),
-                         c(0,5,10,15,20,25), # cna end
-                         c(0, 50, 100, 150, 200), # deletion start
-                         c(0, 50, 100, 150, 200, 250),
-                         c(0, 200, 400, 600),
-                         c(0, 50, 100, 150, 200) # deletion end
-      )  
+      cancer = c(
+        "BRCA", "BRCA", "OV", "OV",
+        "BRCA", "BRCA", "OV", "OV"
+      ),
+      mutation = c(
+        "cna", "cna", "cna", "cna",
+        "deletion", "deletion", "deletion", "deletion"
+      ),
+      gene = c(
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2",
+        "BRCA1", "BRCA2"
+      ),
+      driver_max = c(
+        15, 15, # cna
+        15, 15,
+        15, 5, # deletion
+        5, 15
+      ),
+      ylimits = c(
+        80, 20, 75, 25,
+        200, 250, 600, 200
+      ),
+      yat = list(
+        c(0, 20, 40, 60, 80), # cna start
+        c(0, 5, 10, 15, 20),
+        c(0, 25, 50, 75),
+        c(0, 5, 10, 15, 20, 25), # cna end
+        c(0, 50, 100, 150, 200), # deletion start
+        c(0, 50, 100, 150, 200, 250),
+        c(0, 200, 400, 600),
+        c(0, 50, 100, 150, 200) # deletion end
+      )
     )
   }
-  
-  
+
+
   # Match only the first valid row
   idx <- which(limits_table$cancer == cancer &
-                 limits_table$mutation == mutation &
-                 limits_table$gene == gene)
-  
+    limits_table$mutation == mutation &
+    limits_table$gene == gene)
+
   if (length(idx) == 1) {
     driver_max <- limits_table$driver_max[idx]
-    ylimits    <- limits_table$ylimits[idx]
-    yat        <- limits_table$yat[[idx]]
-    
+    ylimits <- limits_table$ylimits[idx]
+    yat <- limits_table$yat[[idx]]
+
     cat("Using", driver_max, ylimits, paste(yat, collapse = " "), "\n")
-    
+
     return(list(
       driver_max = driver_max,
       ylimits = ylimits,
@@ -692,10 +729,10 @@ get_plot_limits <- function(cancer, mutation, gene, adj_flag) {
 
 
 
-calculate_median_est_incidence_detail <- function(date, 
-                                                  cancer, 
-                                                  gene, 
-                                                  mutation, 
+calculate_median_est_incidence_detail <- function(date,
+                                                  cancer,
+                                                  gene,
+                                                  mutation,
                                                   adj_flag = TRUE) {
   adj_dir <- if (adj_flag) "adjusted" else "unadjusted"
   message("Using ", adj_dir, " weights")
@@ -713,11 +750,14 @@ calculate_median_est_incidence_detail <- function(date,
     mutation <- x["mutation"]
 
     # Construct input/output paths
-    infile <- here("output/data", "TCGA", 
-                   paste(date, cancer, gene, mutation, "incidence_estimates.tsv", 
-                         sep = "_"))
+    infile <- here(
+      "output/data", "TCGA",
+      paste(date, cancer, gene, mutation, "incidence_estimates.tsv",
+        sep = "_"
+      )
+    )
     message("Reading file: ", infile)
-    
+
 
     # Read incidence estimate
     est_data <- read.delim(infile, as.is = TRUE)
@@ -731,21 +771,26 @@ calculate_median_est_incidence_detail <- function(date,
     message("n: ", ob_n)
 
     ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
-    #set.seed(2025)  
+    # set.seed(2025)
     ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
 
-    
+
     # Plot configuration
     limits <- get_plot_limits(cancer, mutation, gene, adj_flag)
     driver_max <- limits$driver_max
     ylimits <- limits$ylimits
     yat <- limits$yat
-    plotfile <- here("output", "figures", "TCGA/minerva_figures/European", 
-                     paste(date, cancer, gene, mutation, 
-                           "segplot.tiff", sep = "_"))
+    plotfile <- here(
+      "output", "figures", "TCGA/minerva_figures/European",
+      paste(date, cancer, gene, mutation,
+        "segplot.tiff",
+        sep = "_"
+      )
+    )
     print(paste("Saving fig.:", plotfile))
 
-    create_incidence_segplot(est_data, ob_median, ob_L95, ob_U95,
+    create_incidence_segplot(est_data, mutation,
+      ob_median, ob_L95, ob_U95,
       filename = plotfile,
       main = paste(cancer, gene),
       driver_max = driver_max,
@@ -786,7 +831,7 @@ calculate_median_est_incidence_detail <- function(date,
 #       filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
 #       filename <- here("data", "TCGA", adj_dir, filename)
 #       # filename <- here("output", "data", "TCGA", adj_dir, filename)
-# 
+#
 #       # filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
 #       print(filename)
 #       # filename <- list.files(pattern = fileflag)
@@ -809,7 +854,7 @@ calculate_median_est_incidence_detail <- function(date,
 #       fn <- paste(date, x["cancer"], x["gene"], x["mutation"], "segplot.tiff", sep = "_")
 #       fn <- here("output", "figures", "TCGA", adj_dir, fn)
 #       print(paste("Saving fig.:", fn))
-# 
+#
 #       if (mutation == "cna" && !adj_flag & gene == "BRCA1") {
 #         plots <- create_incidence_segplot(tmp,
 #           ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
