@@ -394,21 +394,16 @@ run_ks_test <- function(df, ob_dist) {
 create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filename, main,
                                      driver_max = NULL, yat = NULL, ylimits = NULL) {
   # create CI for bootstrap
-  mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, mean)
+  mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
   # mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
   sd_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, sd)
   CI_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, calculate_CIs)
-  # CI_inc <- 1.96*(sd_inc/sqrt(nrow(tmp)))
 
 
   plot_data <- data.frame(
     num = 1:length(mean_inc), mean = mean_inc,
     L95 = CI_inc[1, ], U95 = CI_inc[2, ]
   )
-  # plot_data <- data.frame(num = 1:(length(mean_inc)), mean = mean_inc, CI = CI_inc)
-  # #plot_data <- data.frame(num = 2:(length(mean_inc)+1), mean = mean_inc, CI = CI_inc)
-  # plot_data$L95 <- plot_data$mean-plot_data$CI
-  # plot_data$U95 <- plot_data$mean+plot_data$CI
   # set maximum xlimits
   if (!is.null(driver_max)) {
     plot_data <- plot_data[plot_data$num <= driver_max, ]
