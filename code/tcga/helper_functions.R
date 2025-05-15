@@ -125,7 +125,7 @@ get_mutation_rate <- function(type, anno) {
     indel_deletion = here("data", "TCGA", "mutations", "TCGA_indels_deletions_bp_only.tsv"),
     indelseg_deletion = here("data", "TCGA", "mutations", "TCGA_indels_deletions_only.tsv"),
     amplification = here("data", "TCGA", "mutations", "TCGA_cna_amplification_bp.tsv"),
-    amplificationseg = here("data", "TCGA", "mutations", "TCGA_segments_amplifications_only.tsv"),
+    amplificationseg = here("data", "TCGA", "mutations", "TCGA_segments_amplifications_only.tsv")
   )
 
   cat("Reading mutation data for type:", type, "\n")
