@@ -115,16 +115,17 @@ get_mutation_rate <- function(type, anno) {
   #   insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
   # )
   file_map <- list(
-    snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
+    snv = here("data", "TCGA", "mutations", "TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv"),
     cna = here("data", "TCGA", "mutations", "TCGA_total_cna_bp.tsv"),
     cnaseg = here("data", "TCGA", "mutations", "TCGA_segments.tsv"),
     deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"),
-    deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-    indel = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
-    indelseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-    amplification = "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
-    amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
-    insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
+    deletionseg = here("data", "TCGA", "mutations", "TCGA_segments_deletions_only.tsv"),
+    indel_insertion = here("data", "TCGA", "mutations", "TCGA_indels_insertions_bp_only.tsv"),
+    indelseg_insertion = here("data", "TCGA", "mutations", "TCGA_indels_insertions_only.tsv"),
+    indel_deletion = here("data", "TCGA", "mutations", "TCGA_indels_deletions_bp_only.tsv"),
+    indelseg_deletion = here("data", "TCGA", "mutations", "TCGA_indels_deletions_only.tsv"),
+    amplification = here("data", "TCGA", "mutations", "TCGA_cna_amplification_bp.tsv"),
+    amplificationseg = here("data", "TCGA", "mutations", "TCGA_segments_amplifications_only.tsv"),
   )
 
   cat("Reading mutation data for type:", type, "\n")
