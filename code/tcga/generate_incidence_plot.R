@@ -5,13 +5,13 @@ library(here)
 library(dplyr)
 
 rm(list = ls())
+
+set.seed(42)
 date <- Sys.Date()
-#setwd("/Users/yvesgreatti/github/brca-driver-estimation")
 
 source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
-  #argv <- c("-e", "BRCA1", "-c", "OV", "-m", "deletion")
   argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg")
 } else {
   # Get real command-line arguments
@@ -25,18 +25,9 @@ parser$add_argument("-m", "--mutation", type = "character", help = "mutation typ
 args <- parser$parse_args(argv)
 print(args)
 
-
-#source("code/tcga/helper_functions.R")
-
-#date <- "2020-05-01"
-#date <- "2020-04-22"
-#cancer <- "BRCA"
-#gene <- "BRCA1"
-#mutation <- "lohdeletionseg"
-#mutation <- "cnaseg"
-#adj_flag <- TRUE
-calculate_median_est_incidence_detail(date, 
-                                      args$cancer, args$gene, args$mutation)
-# , 
-#                                       adj_flag = adj_flag)
-
+calculate_median_est_incidence_detail(
+  date,
+  args$cancer,
+  args$gene,
+  args$mutation
+)

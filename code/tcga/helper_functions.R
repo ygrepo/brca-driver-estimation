@@ -1,119 +1,7 @@
 ### GET MUTATION RATE #############################################################################
-# get_mutation_rate <- function(type, anno) {
-# 	if (type == 'snv') {
-# 	# read in somatic mutation rate
-# 		# mut <- read.delim(
-# 		# 	'TCGA_TMB.tsv',
-# 		# 	as.is = TRUE
-# 		# 	)
-# 		mut <- read.delim(
-# 			'TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv',
-# 			as.is = TRUE
-# 			)
-# 		colnames(mut) <- gsub('nonsynonymous_count','count', colnames(mut))
-# 	} else if (type == 'cna') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			"TCGA_total_cna_bp.tsv",
-# 			header = TRUE,
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'cnaseg') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			"TCGA_segments.tsv",
-# 			header = TRUE,
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'deletion') {
-# 		# read in cna segments, deletions only
-# 		mut <- read.delim(
-# 			'TCGA_cna_deletion_bp.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'deletionseg') {
-# 		# read in cna segments, deletions only
-# 		mut <- read.delim(
-# 			'TCGA_indels_deletions_only.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'indel') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			'TCGA_indels_deletions_bp_only.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'indelseg') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			'TCGA_indels_deletions_only.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'amplification') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			'TCGA_cna_amplification_bp.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'amplificationseg') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			'TCGA_segments_amplifications_only.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'insertion') {
-# 		# read in cna segments
-# 		mut <- read.delim(
-# 			'TCGA_indels_insertions_bp_only.tsv',
-# 			as.is = TRUE
-# 			)
-# 	} else if (type == 'meth') {
-# 		# read in methylation values
-# 		mut <- read.csv(
-# 			'ciriello_methylation_rates.csv',
-# 			as.is = TRUE,
-# 			header = TRUE
-# 			);
-# 		mut <- mut[,c('SampleID','DMI_score')]
-# 		mut$SampleID <- gsub('.','-',substr(mut$SampleID, 1, 12), fixed = TRUE)
-# 		colnames(mut) <- c('bcr_patient_barcode','count')
-# 	} else if (type == 'clones') {
-# 		mut <- read.csv('ciriello_number_clones.csv', as.is = TRUE)
-# 		mut <- mut[,c('sample_name','number.of.clones')]
-# 		mut$sample_name <- substr(mut$sample_name, 1, 12)
-# 		colnames(mut) <- c('bcr_patient_barcode','count')
-# 	} else {
-# 	 	stop("Invalid mutation type specified. Please specifiy either snv, meth or cna ...")
-# 	}
-# 	# if multiple samples per patient, find median mutation count
-# 	mut <- aggregate(mut$count, by = list(mut$bcr_patient_barcode), median, na.rm = TRUE)
-# 	colnames(mut) <- c('bcr_patient_barcode','count')
-# 	# convert number of mutations to mutation rate
-# 	# divide by age at diagnosis
-# 	mut_rate <- merge(
-# 		mut[,c('count','bcr_patient_barcode')],
-# 		anno[,c('bcr_patient_barcode','age_at_initial_pathologic_diagnosis')],
-# 		by = 'bcr_patient_barcode'
-# 		)
-# 	mut_rate$rate <- mut_rate$count/as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
-# 	rownames(mut_rate) <- mut_rate$bcr_patient_barcode
-# 	return(mut_rate)
-# }
 
 get_mutation_rate <- function(type, anno) {
   # Mapping of mutation types to file paths
-  # file_map <- list(
-  #   snv = "data/TCGA/TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv",
-  #   cna = "data/TCGA/mutations/TCGA_total_cna_bp.tsv",
-  #   cnaseg = "data/TCGA/mutations/TCGA_segments.tsv",
-  #   deletion = here("data", "TCGA", "mutations", "TCGA_cna_deletion_bp.tsv"),
-  #   deletionseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-  #   indel = "data/TCGA/mutations/TCGA_indels_deletions_bp_only.tsv",
-  #   indelseg = "data/TCGA/mutations/TCGA_indels_deletions_only.tsv",
-  #   amplification = "data/TCGA/mutations/TCGA_cna_amplification_bp.tsv",
-  #   amplificationseg = "data/TCGA/mutations/TCGA_segments_amplifications_only.tsv",
-  #   insertion = "data/TCGA/mutations/TCGA_indels_insertions_bp_only.tsv"
-  # )
   file_map <- list(
     snv = here("data", "TCGA", "mutations", "TCGA_Tumor_Sample_patient_uniq_somatic_mutation_burden.tsv"),
     cna = here("data", "TCGA", "mutations", "TCGA_total_cna_bp.tsv"),
@@ -164,30 +52,19 @@ get_mutation_rate <- function(type, anno) {
   mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
   rownames(mut_rate) <- mut_rate$bcr_patient_barcode
   return(mut_rate)
-  #
-  # # Merge with clinical annotation and compute mutation rate
-  # mut_rate <- merge(
-  #   mut,
-  #   anno[, c("bcr_patient_barcode", "age_at_initial_pathologic_diagnosis")],
-  #   by = "bcr_patient_barcode"
-  # )
-  # mut_rate$rate <- mut_rate$count / as.numeric(mut_rate$age_at_initial_pathologic_diagnosis)
-  # rownames(mut_rate) <- mut_rate$bcr_patient_barcode
-  #
-  # return(mut_rate)
 }
 
 ### CALCULATE MUTATION RATE RATIO #################################################################
 calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
-  if (cancer == 'BRCA') {
+  if (cancer == "BRCA") {
     wt_sample <- standardize_clinical_characteristics_breast(
       anno = anno,
       wt = wt,
       ddr = ddr
     )
-  } else if (cancer == 'OV') {
+  } else if (cancer == "OV") {
     wt_sample <- standardize_clinical_characteristics_ovarian(
       anno = anno,
       wt = wt,
@@ -196,8 +73,6 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
   } else {
     stop("Please specify a valid cancer type. Options are BRCA or OV ...")
   }
-
- # wt_sample <- sample(wt, length(ddr), replace = TRUE)
 
   # calculate median mutation rate of ddr and non ddr samples
   ddr_median <- median(mut_rate[ddr_sample, "rate"])
@@ -230,98 +105,6 @@ calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) 
     incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
   )
 }
-
-
-# calculate_mutation_rate_ratio <- function(int,
-#                                           date,
-#                                           mut_rate,
-#                                           ddr,
-#                                           wt,
-#                                           anno,
-#                                           cancer,
-#                                           gene,
-#                                           mutation,
-#                                           adj_flag = TRUE) {
-#   # sample ddr and non ddr samples
-#   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
-#   # wt_sample <- sample(wt, length(ddr), replace = TRUE)
-#   fn <- paste(date, cancer, gene, mutation,
-#     "mutation_rate_ratio.xlsx",
-#     sep = "_"
-#   )
-#   if (adj_flag) {
-#     adj_dir <- "adjusted"
-#   } else {
-#     adj_dir <- "unadjusted"
-#   }
-#   fn <- here("output", "data", "TCGA", adj_dir, fn)
-#   if (cancer == "BRCA") {
-#     res <- standardize_clinical_characteristics_breast(
-#       anno = anno,
-#       wt = wt,
-#       ddr = ddr
-#       # out_xlsx = fn
-#     )
-#     wt_sample <- res
-#     # if (adj_flag) {
-#     #   print("Using adjusted weights")
-#     #   wt_sample <- res$adj
-#     # } else {
-#     #   print("Using unadjusted weights")
-#     #   wt_sample <- res$unadj
-#     # }
-#   } else if (cancer == "OV") {
-#     res <- standardize_clinical_characteristics_ovarian(
-#       anno = anno,
-#       wt = wt,
-#       ddr = ddr
-#       # out_xlsx = fn
-#     )
-#     wt_sample <- res
-#     # if (adj_flag) {
-#     #   print("Using adjusted weights")
-#     #   wt_sample <- res$adj
-#     # } else {
-#     #   print("Using unadjusted weights")
-#     #   wt_sample <- res$unadj
-#     # }
-#   } else {
-#     stop("Please specify a valid cancer type. Options are BRCA or OV ...")
-#   }
-#
-#   # calculate median mutation rate of ddr and non ddr samples
-#   ddr_median <- median(mut_rate[ddr_sample, "rate"])
-#   wt_median <- median(mut_rate[wt_sample, "rate"], na.rm = TRUE)
-#
-#   # calculate ratio
-#   ddr_ratio <- ddr_median / wt_median
-#
-#   # calculate ratios
-#   df <- data.frame(
-#     int = int,
-#     num = length(ddr),
-#     wt_median = wt_median,
-#     ddr_median = ddr_median,
-#     ratio = ddr_ratio,
-#     incidence_two = ddr_ratio * ddr_ratio,
-#     incidence_three = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)),
-#     incidence_four = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)),
-#     incidence_five = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)),
-#     incidence_six = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)),
-#     incidence_seven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)),
-#     incidence_eight = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)),
-#     incidence_nine = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)),
-#     incidence_ten = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)),
-#     incidence_eleven = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)),
-#     incidence_twelve = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)),
-#     incidence_thirteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)),
-#     incidence_fourteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)),
-#     incidence_fifteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)),
-#     incidence_sixteen = ddr_ratio * ddr_ratio * (ddr_ratio^(1 / 2)) * (ddr_ratio^(1 / 3)) * (ddr_ratio^(1 / 4)) * (ddr_ratio^(1 / 5)) * (ddr_ratio^(1 / 6)) * (ddr_ratio^(1 / 7)) * (ddr_ratio^(1 / 8)) * (ddr_ratio^(1 / 9)) * (ddr_ratio^(1 / 10)) * (ddr_ratio^(1 / 11)) * (ddr_ratio^(1 / 12)) * (ddr_ratio^(1 / 13)) * (ddr_ratio^(1 / 14)) * (ddr_ratio^(1 / 15))
-#   )
-#   return(df)
-# }
-
 
 ### CALCULATE MEDIAN ESTIMATED INCIDENCES #########################################################
 calculate_median_est_incidence <- function() {
@@ -394,7 +177,6 @@ create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filena
                                      driver_max = NULL, yat = NULL, ylimits = NULL) {
   # create CI for bootstrap
   mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
-  # mean_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, median)
   sd_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, sd)
   CI_inc <- apply(tmp[, grep("ratio|incidence", colnames(tmp))], 2, calculate_CIs)
 
@@ -417,13 +199,11 @@ create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filena
   )
   if (is.null(yat)) {
     yat <- seq(0, ylimits, 10)
-    # 	yat <- round(seq(0, ylimit, length.out = 4), digits = -1)
   } else {
     yat <- yat
   }
 
   # set xlab
-  # mut <- gsub("seg", "", strsplit(filename, "_")[[1]][4])
   labels <- c(
     "Number SNV drivers",
     "Number CNA drivers",
@@ -467,52 +247,6 @@ create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filena
     abline.h = ob_median
   )
 }
-
-# create_incidence_segplot <- function(tmp, ob_median, ob_L95, ob_U95, filename, main, driver_max = NULL) {
-#   # create CI for bootstrap
-#   mean_inc <- apply(tmp[,grep('incidence', colnames(tmp))], 2, mean)
-#   sd_inc <-  apply(tmp[,grep('incidence', colnames(tmp))], 2, sd)
-#   CI_inc <- 1.96*(sd_inc/sqrt(nrow(tmp)))
-#
-#   plot_data <- data.frame(num = 2:(length(mean_inc)+1), mean = mean_inc, CI = CI_inc)
-#   plot_data$L95 <- plot_data$mean-plot_data$CI
-#   plot_data$U95 <- plot_data$mean+plot_data$CI
-#   # set maximum xlimits
-#   if (!is.null(driver_max)) {
-#     plot_data <- plot_data[plot_data$num <= driver_max,]
-#   }
-#   plot_data$num <- factor(plot_data$num)
-#   max_y <- max(plot_data$mean+plot_data$CI)
-#   ylimits <- max(max_y+0.2*max_y, ob_U95+ob_U95*0.1)
-#   # create segplot
-#   create.scatterplot(
-#     mean ~ num,
-#     data = plot_data,
-#     filename = filename,
-#     main = main,
-#     ylab.label = 'Incidence',
-#     xlab.label = 'Number Drivers',
-#     xaxis.lab = 2:(length(mean_inc)+1),
-#     ylimits = c(0, ylimits),
-#     yat = seq(0, ylimits, 10),
-#     #centers = plot_data$mean,
-#     y.error.up = plot_data$CI,
-#     resolution = 300,
-#     add.rectangle = TRUE,
-#     alpha.rectangle = 0.5,
-#     col.rectangle = 'grey',
-#     xleft.rectangle = 0,
-#     error.bar.lwd = 0.5,
-#     xright.rectangle = length(mean_inc)+1.5,
-#     ybottom.rectangle = ob_L95,
-#     ytop.rectangle = ob_U95,
-#     width = 9,
-#     #plot.horizontal = FALSE,
-#     abline.h = ob_median
-#   )
-# }
-
-
 
 
 #### CREATE BARPLOT OF MEDIANS ####################################################################
@@ -625,7 +359,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
   # return <- list(driver_max=15,
   #                ylimits =100,
   #                yat = c(0, 25, 50, 75, 100))
-  # # 
+  # #
   adj_flag <- ifelse(mutation %in% c("cnaseg", "deletionseg"), TRUE, FALSE)
 
   if (adj_flag) {
@@ -733,9 +467,6 @@ calculate_median_est_incidence_detail <- function(date,
                                                   cancer,
                                                   gene,
                                                   mutation) {
-  # adj_dir <- if (adj_flag) "adjusted" else "unadjusted"
-  # message("Using ", adj_dir, " weights")
-
   # Define parameter combinations
   params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation)
   print(params)
