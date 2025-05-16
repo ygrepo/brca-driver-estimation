@@ -1,0 +1,13 @@
+#!/bin/bash
+#BSUB -J run_incidence_est                           # Job name
+#BSUB -P acc_DiseaseGeneCell   # allocation account
+#BSUB -q premium                                  # queue
+#BSUB -n 8                                            # number of compute cores = 1
+#BSUB -R rusage[mem=80000]              # 80GB of memory
+#BSUB -W 15:00                                   # walltime in HH:MM
+#BSUB -o %J.log                              # output log (%J : JobID)
+#BSUB -eo %J.stderr                             # error log
+module purge
+module load R/4.4.3
+
+Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/incidence_estimation.R -m cnaseg -e BRCA1 -c BRCA
