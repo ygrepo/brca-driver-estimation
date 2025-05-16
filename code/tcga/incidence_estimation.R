@@ -124,7 +124,7 @@ print(paste0("Number of runs:", n_runs))
 # run bootstrap 
 results <- do.call(rbind, sapply(
   1:n_runs,
-=	calculate_mutation_rate_ratio,
+	calculate_mutation_rate_ratio,
 	mut_rate = mut_rate,
 	ddr = ddr,
 	wt = wt,
