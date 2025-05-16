@@ -209,17 +209,28 @@ create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filena
     "Number CNA drivers",
     "Number CNA drivers",
     "Number CNA deletion drivers",
+    "Number CNA deletion drivers",
     "Number CNA gain drivers",
-    "Number small deletion drivers"
+    "Number CNA gain drivers",
+    "Number small deletion drivers",
+    "Number small deletion drivers",
+    "Number small insertion drivers",
+    "Number small insertion drivers",
   )
   names(labels) <- c(
     "snv",
     "cnaseg",
     "cna",
     "deletion",
+    "deletionseg",
     "amplification",
-    "indel"
+    "amplificationseg",
+    "indel_deletion",
+    "indelseg_deletion",
+    "indel_insertion",
+    "indelseg_insertion"
   )
+  
   # create segplot
   create.scatterplot(
     mean ~ num,
@@ -360,84 +371,178 @@ get_plot_limits <- function(cancer, mutation, gene) {
   #                ylimits =100,
   #                yat = c(0, 25, 50, 75, 100))
   # #
-  adj_flag <- ifelse(mutation %in% c("cnaseg", "deletionseg"), TRUE, FALSE)
+  # adj_flag <- ifelse(mutation %in% c("cnaseg", "deletionseg"), TRUE, FALSE)
+  # 
+  # if (adj_flag) {
+  #   limits_table <- tibble::tibble(
+  #     cancer = c(
+  #       "BRCA", "BRCA", "OV", "OV",
+  #       "BRCA", "BRCA", "OV", "OV"
+  #     ),
+  #     mutation = c(
+  #       "cnaseg", "cnaseg", "cnaseg", "cnaseg",
+  #       "deletionseg", "deletionseg", "deletionseg", "deletionseg"
+  #     ),
+  #     gene = c(
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2"
+  #     ),
+  #     driver_max = c(
+  #       5, 15,
+  #       15, 15,
+  #       15, 15,
+  #       15, 15
+  #     ),
+  #     ylimits = c(
+  #       100, 100, 75, 100,
+  #       100, 100, 100, 100
+  #     ),
+  #     yat = list(
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100),
+  #       c(0, 25, 50, 75, 100)
+  #     )
+  #   )
+  # } else {
+  #   limits_table <- tibble::tibble(
+  #     cancer = c(
+  #       "BRCA", "BRCA", "OV", "OV",
+  #       "BRCA", "BRCA", "OV", "OV"
+  #     ),
+  #     mutation = c(
+  #       "cna", "cna", "cna", "cna",
+  #       "deletion", "deletion", "deletion", "deletion"
+  #     ),
+  #     gene = c(
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2",
+  #       "BRCA1", "BRCA2"
+  #     ),
+  #     driver_max = c(
+  #       15, 15, # cna
+  #       15, 15,
+  #       15, 5, # deletion
+  #       5, 15
+  #     ),
+  #     ylimits = c(
+  #       80, 20, 75, 25,
+  #       200, 250, 600, 200
+  #     ),
+  #     yat = list(
+  #       c(0, 20, 40, 60, 80), # cna start
+  #       c(0, 5, 10, 15, 20),
+  #       c(0, 25, 50, 75),
+  #       c(0, 5, 10, 15, 20, 25), # cna end
+  #       c(0, 50, 100, 150, 200), # deletion start
+  #       c(0, 50, 100, 150, 200, 250),
+  #       c(0, 200, 400, 600),
+  #       c(0, 50, 100, 150, 200) # deletion end
+  #     )
+  #   )
+  # }
 
-  if (adj_flag) {
-    limits_table <- tibble::tibble(
-      cancer = c(
-        "BRCA", "BRCA", "OV", "OV",
-        "BRCA", "BRCA", "OV", "OV"
-      ),
-      mutation = c(
-        "cnaseg", "cnaseg", "cnaseg", "cnaseg",
-        "deletionseg", "deletionseg", "deletionseg", "deletionseg"
-      ),
-      gene = c(
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2"
-      ),
-      driver_max = c(
-        5, 15,
-        15, 15,
-        15, 15,
-        15, 15
-      ),
-      ylimits = c(
-        100, 100, 75, 100,
-        100, 100, 100, 100
-      ),
-      yat = list(
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100),
-        c(0, 25, 50, 75, 100)
-      )
-    )
-  } else {
-    limits_table <- tibble::tibble(
-      cancer = c(
-        "BRCA", "BRCA", "OV", "OV",
-        "BRCA", "BRCA", "OV", "OV"
-      ),
-      mutation = c(
-        "cna", "cna", "cna", "cna",
-        "deletion", "deletion", "deletion", "deletion"
-      ),
-      gene = c(
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2",
-        "BRCA1", "BRCA2"
-      ),
-      driver_max = c(
-        15, 15, # cna
-        15, 15,
-        15, 5, # deletion
-        5, 15
-      ),
-      ylimits = c(
-        80, 20, 75, 25,
-        200, 250, 600, 200
-      ),
-      yat = list(
-        c(0, 20, 40, 60, 80), # cna start
-        c(0, 5, 10, 15, 20),
-        c(0, 25, 50, 75),
-        c(0, 5, 10, 15, 20, 25), # cna end
-        c(0, 50, 100, 150, 200), # deletion start
-        c(0, 50, 100, 150, 200, 250),
-        c(0, 200, 400, 600),
-        c(0, 50, 100, 150, 200) # deletion end
-      )
-    )
-  }
+  limits_table <- tibble::tibble(
+    cancer = c(
+      # TRUE
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
+      # FALSE
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV"
+    ),
+    mutation = c(
+      # TRUE
+      "cnaseg", "cnaseg", "cnaseg", "cnaseg",
+      "deletionseg", "deletionseg", "deletionseg", "deletionseg",
+      "amplificationseg", "amplificationseg", "amplificationseg", "amplificationseg",
+      # FALSE
+      "snv", "snv", "snv", "snv",
+      "cna", "cna", "cna", "cna",
+      "deletion", "deletion", "deletion", "deletion",
+      "amplification", "amplification", "amplification", "amplification"
+    ),
+    gene = rep(c("BRCA1", "BRCA2", "BRCA1", "BRCA2"), 4),
+    driver_max = c(
+      # TRUE
+      5, 15, 15, 15,
+      15, 15, 15, 15,
+      5, 15, 15, 15,
+      # FALSE
+      15, 15, 15, 15,
+      15, 15, 15, 15,
+      15, 5, 5, 15,
+      5, 15, 15, 15,
+    ),
+    ylimits = c(
+      # TRUE
+      100, 100, 75, 100,
+      100, 100, 100, 100,
+      100, 100, 100, 100,
+      # FALSE
+      250, 150, 60, 60,
+      80, 20, 75, 25,
+      200, 250, 600, 200,
+      200, 150, 150, 150
+    ),
+    yat = list(
+      # TRUE
+      # cnaseg
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      
+      # deletionseg
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
 
+      # amplificationseg
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      
+      # FALSE
+      # snv
+      c(0, 50, 100, 150, 200, 250),
+      c(0, 50, 100, 150),
+      c(0, 20, 40, 60),
+      c(0, 20, 40, 60),
+      
+      # cna
+      c(0, 20, 40, 60, 80),
+      c(0, 5, 10, 15, 20),
+      c(0, 25, 50, 75),
+      c(0, 5, 10, 15, 20, 25),
+      
+      # deletion
+      c(0, 50, 100, 150, 200),
+      c(0, 50, 100, 150, 200, 250),
+      c(0, 200, 400, 600),
+      c(0, 50, 100, 150, 200),
+      
+      # amplification
+      c(0, 50, 100, 150, 200),
+      c(0, 50, 100, 150),
+      c(0, 50, 100, 150),
+      c(0, 50, 100, 150)
+      
+    )
+  )
+  
 
   # Match only the first valid row
   idx <- which(limits_table$cancer == cancer &
