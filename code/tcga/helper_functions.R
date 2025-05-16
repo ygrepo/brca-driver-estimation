@@ -215,7 +215,7 @@ create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filena
     "Number small deletion drivers",
     "Number small deletion drivers",
     "Number small insertion drivers",
-    "Number small insertion drivers",
+    "Number small insertion drivers"
   )
   names(labels) <- c(
     "snv",
