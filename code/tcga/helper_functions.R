@@ -482,7 +482,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
       15, 15, 15, 15,
       15, 15, 15, 15,
       15, 5, 5, 15,
-      5, 15, 15, 15,
+      5, 15, 15, 15
     ),
     ylimits = c(
       # TRUE
