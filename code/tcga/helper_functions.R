@@ -180,7 +180,6 @@ get_mutation_rate <- function(type, anno) {
 ### CALCULATE MUTATION RATE RATIO #################################################################
 calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
   # sample ddr and non ddr samples
-  set.seed(42)  # You can choose any integer seed value
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   if (cancer == 'BRCA') {
     wt_sample <- standardize_clinical_characteristics_breast(
@@ -771,7 +770,6 @@ calculate_median_est_incidence_detail <- function(date,
     message("n: ", ob_n)
 
     ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
-    set.seed(42)
     ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
 
 
@@ -930,7 +928,6 @@ standardize_clinical_characteristics_breast <- function(anno, wt, ddr) {
   # add weights
   wt_df <- merge(wt_df, group_weights, by = "group")
   # randomly sample wt
-  set.seed(42)
   wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
   return(wt_sample$Sample.ID)
 }
@@ -950,7 +947,6 @@ standardize_clinical_characteristics_ovarian <- function(anno, wt, ddr) {
   # add weights
   wt_df <- merge(wt_stage, stage_weights, by = "clinical_stage")
   # randomly sample wt
-  set.seed(42)
   wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
   return(wt_sample$bcr_patient_barcode)
 }

@@ -22,6 +22,7 @@ date <- Sys.Date()
 
 source(here("code", "tcga", "helper_functions.R"))
 
+set.seed(42)
 # 
 # library(argparse);
 # 
@@ -118,13 +119,12 @@ wt 	<- wt[wt %in% mut_rate$bcr_patient_barcode]
 
 # print the number of ddr samples 
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-n_runs <- 10
+n_runs <- 10000
 print(paste0("Number of runs:", n_runs))
 # run bootstrap 
 results <- do.call(rbind, sapply(
   1:n_runs,
-	#1:10000,
-	calculate_mutation_rate_ratio,
+=	calculate_mutation_rate_ratio,
 	mut_rate = mut_rate,
 	ddr = ddr,
 	wt = wt,

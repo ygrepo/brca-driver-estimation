@@ -1,13 +1,33 @@
 #!/bin/bash
-#BSUB -J run_incidence_est                           # Job name
-#BSUB -P acc_DiseaseGeneCell   # allocation account
-#BSUB -q premium                                  # queue
-#BSUB -n 8                                            # number of compute cores = 1
-#BSUB -R rusage[mem=80000]              # 80GB of memory
-#BSUB -W 15:00                                   # walltime in HH:MM
-#BSUB -o %J.log                              # output log (%J : JobID)
-#BSUB -eo %J.stderr                             # error log
+#BSUB -J inc_array[1-8]        # array indices 1…8
+#BSUB -P acc_DiseaseGeneCell
+#BSUB -q premium
+#BSUB -n 1
+#BSUB -R "rusage[mem=10000]"
+#BSUB -W 1:00
+#BSUB -o logs/inc_%J_%I.out    # %I is the array index
+#BSUB -eo logs/inc_%J_%I.err
+
 module purge
 module load R/4.4.3
 
-Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/incidence_estimation.R -m cnaseg -e BRCA1 -c BRCA
+# define the grid in the exact same order as the array length
+params=(
+  "BRCA BRCA1 cna"
+  "BRCA BRCA1 cnaseg"
+  "BRCA BRCA2 cna"
+  "BRCA BRCA2 cnaseg"
+  "OV   BRCA1 cna"
+  "OV   BRCA1 cnaseg"
+  "OV   BRCA2 cna"
+  "OV   BRCA2 cnaseg"
+)
+
+# pick the right triple (bash arrays are 0-based, LSB_JOBINDEX is 1-based)
+idx=$((LSB_JOBINDEX-1))
+read cancer gene mut <<< "${params[$idx]}"
+
+echo "Running combination #${LSB_JOBINDEX}: cancer=$cancer gene=$gene mut=$mut"
+
+Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/incidence_estimation.R \
+        -m "$mut" -e "$gene" -c "$cancer"
