@@ -472,7 +472,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
       "deletion", "deletion", "deletion", "deletion",
       "amplification", "amplification", "amplification", "amplification"
     ),
-    gene = rep(c("BRCA1", "BRCA2", "BRCA1", "BRCA2"), 4),
+    gene = rep(c("BRCA1", "BRCA2", "BRCA1", "BRCA2"), 7),
     driver_max = c(
       # TRUE
       5, 15, 15, 15,
