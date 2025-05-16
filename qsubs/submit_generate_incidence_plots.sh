@@ -23,7 +23,7 @@ module load R/4.4.3
 for entry in "${params[@]}"; do
   # split the triple into three variables
   read -r cancer gene mut <<< "$entry"
-  jobname="inc_${cancer}_${gene}_${mut}"
+  jobname="inc_plot_${cancer}_${gene}_${mut}"
 
   bsub \
     -J "$jobname" \
@@ -35,6 +35,6 @@ for entry in "${params[@]}"; do
     -o "logs/${jobname}.%J.out" \
     -eo "logs/${jobname}.%J.err" \
     "module purge; module load R/4.4.3; \
-     Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/incidence_estimation.R \
+     Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/generate_incidence_plot.R \
        -m '$mut' -e '$gene' -c '$cancer'"
 done
