@@ -25,15 +25,34 @@
 #   "OV   BRCA2 amplificationseg"
 # )
 
+# params=(
+#   "BRCA BRCA1 deletion"
+#   "BRCA BRCA2 deletion"
+#   "OV BRCA1 deletion"
+#   "OV BRCA2 deletion"
+#   "BRCA BRCA1 deletionseg"
+#   "BRCA BRCA2 deletionseg"
+#   "OV BRCA1 deletionseg"
+#   "OV BRCA2 deletionseg"
+#   )
+  
 params=(
-  "BRCA BRCA1 deletion"
-  "BRCA BRCA2 deletion"
-  "OV BRCA1 deletion"
-  "OV BRCA2 deletion"
-  "BRCA BRCA1 deletionseg"
-  "BRCA BRCA2 deletionseg"
-  "OV BRCA1 deletionseg"
-  "OV BRCA2 deletionseg"
+  "BRCA BRCA1 indel_insertion"
+  "BRCA BRCA2 indel_insertion"
+  "OV BRCA1 indel_insertion"
+  "OV BRCA2 indel_insertion"
+  "BRCA BRCA1 indelseg_insertion"
+  "BRCA BRCA2 indelseg_insertion"
+  "OV BRCA1 indelseg_insertion"
+  "OV BRCA2 indelseg_insertion"
+  "BRCA BRCA1 indel_deletion"
+  "BRCA BRCA2 indel_deletion"
+  "OV BRCA1 indel_deletion"
+  "OV BRCA2 indel_deletion"
+  "BRCA BRCA1 indelseg_deletion"
+  "BRCA BRCA2 indelseg_deletion"
+  "OV BRCA1 indelseg_deletion"
+  "OV BRCA2 indelseg_deletion"
   )
   
 # make sure log dir exists
