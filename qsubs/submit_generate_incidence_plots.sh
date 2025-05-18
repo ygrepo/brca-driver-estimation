@@ -2,29 +2,40 @@
 # submit_incidence.sh
 
 # — adjust these if you need to add or remove combos —
-params=(
-  "BRCA BRCA1 snv"
-  "BRCA BRCA2 snv"
-  "OV BRCA1 snv"
-  "OV BRCA2 snv"
-  "BRCA BRCA1 cna"
-  "BRCA BRCA1 cnaseg"
-  "BRCA BRCA2 cna"
-  "BRCA BRCA2 cnaseg"
-  "BRCA BRCA1 amplification"
-  "BRCA BRCA1 amplificationseg"
-  "BRCA BRCA2 amplification"
-  "BRCA BRCA2 amplificationseg"
-  "OV   BRCA1 cna"
-  "OV   BRCA1 cnaseg"
-  "OV   BRCA1 amplification"
-  "OV   BRCA1 amplificationseg"
-  "OV   BRCA2 cna"
-  "OV   BRCA2 cnaseg"
-  "OV   BRCA2 amplification"
-  "OV   BRCA2 amplificationseg"
-)
+# params=(
+#   "BRCA BRCA1 snv"
+#   "BRCA BRCA2 snv"
+#   "OV BRCA1 snv"
+#   "OV BRCA2 snv"
+#   "BRCA BRCA1 cna"
+#   "BRCA BRCA1 cnaseg"
+#   "BRCA BRCA2 cna"
+#   "BRCA BRCA2 cnaseg"
+#   "BRCA BRCA1 amplification"
+#   "BRCA BRCA1 amplificationseg"
+#   "BRCA BRCA2 amplification"
+#   "BRCA BRCA2 amplificationseg"
+#   "OV   BRCA1 cna"
+#   "OV   BRCA1 cnaseg"
+#   "OV   BRCA1 amplification"
+#   "OV   BRCA1 amplificationseg"
+#   "OV   BRCA2 cna"
+#   "OV   BRCA2 cnaseg"
+#   "OV   BRCA2 amplification"
+#   "OV   BRCA2 amplificationseg"
+# )
 
+params=(
+  "BRCA BRCA1 deletion"
+  "BRCA BRCA2 deletion"
+  "OV BRCA1 deletion"
+  "OV BRCA2 deletion"
+  "BRCA BRCA1 deletionseg"
+  "BRCA BRCA2 deletionseg"
+  "OV BRCA1 deletionseg"
+  "OV BRCA2 deletionseg"
+  )
+  
 # make sure log dir exists
 mkdir -p logs
 
