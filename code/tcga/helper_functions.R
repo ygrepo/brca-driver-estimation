@@ -380,6 +380,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV"
     ),
     mutation = c(
