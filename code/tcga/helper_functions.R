@@ -373,7 +373,10 @@ get_plot_limits <- function(cancer, mutation, gene) {
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
+      "BRCA", "BRCA", "OV", "OV",
       # FALSE
+      "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
       "BRCA", "BRCA", "OV", "OV",
@@ -384,34 +387,50 @@ get_plot_limits <- function(cancer, mutation, gene) {
       "cnaseg", "cnaseg", "cnaseg", "cnaseg",
       "deletionseg", "deletionseg", "deletionseg", "deletionseg",
       "amplificationseg", "amplificationseg", "amplificationseg", "amplificationseg",
+      "indelseg_insertion", "indelseg_insertion", "indelseg_insertion", "indelseg_insertion",
+      "indelseg_deletion", "indelseg_deletion", "indelseg_deletion", "indelseg_deletion",
+      
       # FALSE
       "snv", "snv", "snv", "snv",
       "cna", "cna", "cna", "cna",
       "deletion", "deletion", "deletion", "deletion",
-      "amplification", "amplification", "amplification", "amplification"
+      "amplification", "amplification", "amplification", "amplification",
+      "indel_insertion", "indel_insertion", "indel_insertion", "indel_insertion",
+      "indel_deletion", "indel_deletion", "indel_deletion", "indel_deletion"
     ),
-    gene = rep(c("BRCA1", "BRCA2", "BRCA1", "BRCA2"), 7),
+    gene = rep(c("BRCA1", "BRCA2", "BRCA1", "BRCA2"), 11),
     driver_max = c(
       # TRUE
       5, 15, 15, 15,
       15, 15, 15, 15,
       5, 15, 15, 15,
+      15, 15, 15, 15,
+      5, 15, 15, 15,
+      
+      
       # FALSE
       15, 15, 15, 15,
       15, 15, 15, 15,
       15, 5, 5, 15,
-      5, 15, 15, 15
+      5, 15, 15, 15,
+      15, 15, 15, 15,
+      2, 5, 15, 5
     ),
     ylimits = c(
       # TRUE
       100, 100, 75, 100,
       100, 100, 100, 100,
       100, 100, 100, 100,
+      100, 100, 100, 100,
+      100, 100, 100, 100,
+      
       # FALSE
       250, 150, 60, 60,
       80, 20, 75, 25,
       200, 250, 600, 200,
-      200, 150, 150, 150
+      200, 150, 150, 150,
+      100, 100, 100, 100,
+      500, 500, 300, 300
     ),
     yat = list(
       # TRUE
@@ -433,6 +452,18 @@ get_plot_limits <- function(cancer, mutation, gene) {
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
 
+      # indelseg_insertion
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      
+      # indelseg_deletion
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      c(0, 25, 50, 75, 100),
+      
       # FALSE
       # snv
       c(0, 50, 100, 150, 200, 250),
@@ -456,7 +487,20 @@ get_plot_limits <- function(cancer, mutation, gene) {
       c(0, 50, 100, 150, 200),
       c(0, 50, 100, 150),
       c(0, 50, 100, 150),
-      c(0, 50, 100, 150)
+      c(0, 50, 100, 150),
+      
+      # indel_insertion
+      c(0, 50, 100, 150, 200),
+      c(0, 50, 100, 150, 200),
+      c(0, 50, 100, 150, 200),
+      c(0, 50, 100, 150, 200),
+      
+      # indel_deletion
+      c(0, 100, 200, 300, 400, 500),
+      c(0, 100, 200, 300, 400, 500),
+      c(0, 200, 300),
+      c(0, 200, 300)
+      
     )
   )
 
