@@ -701,7 +701,7 @@ standardize_clinical_characteristics_breast <- function(
     wt,
     ddr,
     prop_correction = FALSE,
-    out_xlsx = here("output", "data", "TCGA", "WT_matching_summary.xlsx")) {
+    out_xlsx = here("output", "data", "TCGA", "Breast_WT_matching_summary.xlsx")) {
   if (prop_correction) {
     anno <- remove_stripping_abc(anno, col = "clinical_stage")
 

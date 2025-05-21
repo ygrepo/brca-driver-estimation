@@ -28,6 +28,7 @@ parser <- ArgumentParser()
 parser$add_argument("-e", "--gene", type = "character", help = "gene")
 parser$add_argument("-c", "--cancer", type = "character", help = "cancer type")
 parser$add_argument("-m", "--mutation", type = "character", help = "mutation type")
+parser$add_argument("-a", "--adj", type = "character", help = "Prop Adjustment (TRUE/FALSE or yes/no)")
 args <- parser$parse_args(argv)
 print(args)
 
@@ -79,7 +80,8 @@ wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
 n_runs <- 10000
 print(paste0("Number of runs:", n_runs))
-prop_correction <- FALSE
+prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
+print(paste0("Proportion correction: ", prop_correction))
 # run bootstrap
 results <- do.call(rbind, sapply(
   1:n_runs,
