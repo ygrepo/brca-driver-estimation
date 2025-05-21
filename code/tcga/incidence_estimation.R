@@ -79,6 +79,7 @@ wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
 n_runs <- 10000
 print(paste0("Number of runs:", n_runs))
+prop_correction <- FALSE
 # run bootstrap
 results <- do.call(rbind, sapply(
   1:n_runs,
@@ -88,6 +89,7 @@ results <- do.call(rbind, sapply(
   wt = wt,
   anno = can_anno,
   cancer = args$cancer,
+  prop_correction = prop_correction,
   simplify = FALSE
 ))
 

@@ -55,14 +55,22 @@ get_mutation_rate <- function(type, anno) {
 }
 
 ### CALCULATE MUTATION RATE RATIO #################################################################
-calculate_mutation_rate_ratio <- function(int, mut_rate, ddr, wt, anno, cancer) {
+calculate_mutation_rate_ratio <- function(int, 
+                                          mut_rate, 
+                                          ddr, 
+                                          wt, 
+                                          anno, 
+                                          cancer,
+                                          prop_correction = FALSE
+                                          ) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   if (cancer == "BRCA") {
     wt_sample <- standardize_clinical_characteristics_breast(
       anno = anno,
       wt = wt,
-      ddr = ddr
+      ddr = ddr,
+      prop_correction = prop_correction
     )
   } else if (cancer == "OV") {
     wt_sample <- standardize_clinical_characteristics_ovarian(
@@ -390,7 +398,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
       "amplificationseg", "amplificationseg", "amplificationseg", "amplificationseg",
       "indelseg_insertion", "indelseg_insertion", "indelseg_insertion", "indelseg_insertion",
       "indelseg_deletion", "indelseg_deletion", "indelseg_deletion", "indelseg_deletion",
-      
+
       # FALSE
       "snv", "snv", "snv", "snv",
       "cna", "cna", "cna", "cna",
@@ -407,8 +415,8 @@ get_plot_limits <- function(cancer, mutation, gene) {
       5, 15, 15, 15,
       15, 15, 15, 15,
       5, 15, 15, 15,
-      
-      
+
+
       # FALSE
       15, 15, 15, 15,
       15, 15, 15, 15,
@@ -424,7 +432,7 @@ get_plot_limits <- function(cancer, mutation, gene) {
       100, 100, 100, 100,
       100, 100, 100, 100,
       100, 100, 100, 100,
-      
+
       # FALSE
       250, 150, 60, 60,
       80, 20, 75, 25,
@@ -458,13 +466,13 @@ get_plot_limits <- function(cancer, mutation, gene) {
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
-      
+
       # indelseg_deletion
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
       c(0, 25, 50, 75, 100),
-      
+
       # FALSE
       # snv
       c(0, 50, 100, 150, 200, 250),
@@ -489,19 +497,18 @@ get_plot_limits <- function(cancer, mutation, gene) {
       c(0, 50, 100, 150),
       c(0, 50, 100, 150),
       c(0, 50, 100, 150),
-      
+
       # indel_insertion
       c(0, 50, 100, 150, 200),
       c(0, 50, 100, 150, 200),
       c(0, 50, 100, 150, 200),
       c(0, 50, 100, 150, 200),
-      
+
       # indel_deletion
       c(0, 100, 200, 300, 400, 500),
       c(0, 100, 200, 300, 400, 500),
       c(0, 200, 300),
       c(0, 200, 300)
-      
     )
   )
 
@@ -687,16 +694,107 @@ calculate_median_est_incidence_detail <- function(date,
 #   return(incidence)
 # }
 
-### STANDARDIZE WT ON CLINICAL VARIABLES ##########################################################
-standardize_clinical_characteristics_breast <- function(anno, wt, ddr) {
-  # read in subtype data
-  # subtype <- read.csv(
-  # 	'~/GermlineSomaticAssociations/genome-wide/output/somatic_gwas/pancan/driver_rate_comparison/TCGA_gyn_supplementary_table4.csv',
-  # 	as.is = TRUE,
-  # 	skip = 1
-  # 	);
-  # # Read subtype & build carrier summary ----
-  subtype <- read_xlsx("data/TCGA/mmc4.xlsx", skip = 1) |>
+### STANDARDIZE WT ON CLINICAL VARIABLES
+### ################################################################################################
+standardize_clinical_characteristics_breast <- function(
+    anno,
+    wt,
+    ddr,
+    prop_correction = FALSE,
+    out_xlsx = here("output", "data", "TCGA", "WT_matching_summary.xlsx")) {
+  if (prop_correction) {
+    anno <- remove_stripping_abc(anno, col = "clinical_stage")
+
+    # Read subtype & build carrier summary ----
+    subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+      select(Sample.ID, BRCA_Subtype_PAM50)
+
+    car_sub <- subtype |> filter(Sample.ID %in% ddr)
+    car_stage <- anno |>
+      filter(bcr_patient_barcode %in% ddr) |>
+      rename(Sample.ID = bcr_patient_barcode) |>
+      select(Sample.ID, clinical_stage)
+
+    car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
+      mutate(group = paste(BRCA_Subtype_PAM50, clinical_stage, sep = "|"))
+
+    car_summary <- car_df |>
+      count(group, name = "Carriers_n") |>
+      mutate(
+        Carriers_pct = Carriers_n / sum(Carriers_n)
+      ) |>
+      mutate(
+        Expected_WT = Carriers_pct * sum(Carriers_n)
+      )
+
+    # Prepare WT pool ----
+    wt_sub <- subtype |>
+      filter(!Sample.ID %in% ddr) |>
+      filter(Sample.ID %in% wt)
+
+
+    wt_stage <- anno |>
+      filter(bcr_patient_barcode %in% wt) |>
+      rename(Sample.ID = bcr_patient_barcode) |>
+      select(Sample.ID, clinical_stage)
+
+    wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+      mutate(group = paste(BRCA_Subtype_PAM50, clinical_stage, sep = "|"))
+
+    # Adjusted (carriers' joint freq)
+    wt_adj_weights <- car_summary |>
+      select(
+        group,
+        WT_adj_prop = Carriers_pct
+      )
+
+    # adjusted
+    wt_for_adj <- wt_df |>
+      left_join(wt_adj_weights, by = "group") |>
+      mutate(
+        WT_adj_prop = tidyr::replace_na(WT_adj_prop, 0),
+        WT_adj_prop = as.numeric(WT_adj_prop)
+      )
+
+    # for adjusted
+    wt_adj_draw <- sample(
+      x = wt_for_adj$Sample.ID,
+      size = length(ddr),
+      prob = wt_for_adj$WT_adj_prop,
+      replace = FALSE
+    )
+
+    # Write the summary table to Excel (optional) ----
+    summary_tbl <- car_summary |>
+      full_join(wt_for_unadj |>
+        count(group, WT_available_n = n()), by = "group") |>
+      full_join(wt_unadj_weights, by = "group") |>
+      full_join(wt_adj_weights, by = "group") |>
+      tidyr::replace_na(list(
+        Carriers_n     = 0,
+        Carriers_pct   = 0,
+        Expected_WT    = 0,
+        WT_available_n = 0,
+        WT_unadj_prop  = 0,
+        WT_adj_prop    = 0
+      )) |>
+      arrange(desc(Carriers_n))
+
+    wb <- createWorkbook()
+    addWorksheet(wb, "WT Matching Summary")
+    writeData(wb, "WT Matching Summary", summary_tbl)
+    if (!file.exists(out_xlsx)) {
+      message("Saving: ", out_xlsx)
+      saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+    } else {
+      #    message("File already exists, skipping save: ", out_xlsx)
+    }
+
+    return(wt_adj_draw)
+  }
+
+  # Read subtype & build carrier summary ----
+  subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
     select(Sample.ID, BRCA_Subtype_PAM50)
 
   subtype <- subtype[, c("Sample.ID", "BRCA_Subtype_PAM50")]
@@ -920,4 +1018,24 @@ add_linear_reg_key <- function(statsdf, group, value, x = 0.02, y = 0.98) {
     corner = c(0, 1)
   )
   return(key)
+}
+
+
+remove_stripping_abc <- function(df,
+                                 col = "stage",
+                                 missing_label = "[Not Available]") {
+  df <- df |> rename(.stage = {{ col }})
+
+  # mark missing
+  df$.stage[df$.stage == missing_label] <- NA
+
+  # strip only trailing A, B or C in the Roman part
+  df$.stage <- gsub(
+    pattern     = "([IVXLCDM]+)[ABC]$",
+    replacement = "\\1",
+    x           = df$.stage
+  )
+
+  # return with original column name
+  df |> rename(!!col := .stage)
 }
