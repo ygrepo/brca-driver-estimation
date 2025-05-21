@@ -766,9 +766,8 @@ standardize_clinical_characteristics_breast <- function(
 
     # Write the summary table to Excel (optional) ----
     summary_tbl <- car_summary |>
-      full_join(wt_for_unadj |>
+      full_join(wt_for_adj |>
         count(group, WT_available_n = n()), by = "group") |>
-      full_join(wt_unadj_weights, by = "group") |>
       full_join(wt_adj_weights, by = "group") |>
       tidyr::replace_na(list(
         Carriers_n     = 0,
