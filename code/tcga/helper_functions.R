@@ -540,7 +540,10 @@ get_plot_limits <- function(cancer, mutation, gene) {
 calculate_median_est_incidence_detail <- function(date,
                                                   cancer,
                                                   gene,
-                                                  mutation) {
+                                                  mutation,
+                                                  prop_correction = FALSE) {
+  prop_correction_str <- as.character(prop_correction)
+  
   # Define parameter combinations
   params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation)
   print(params)
@@ -556,7 +559,8 @@ calculate_median_est_incidence_detail <- function(date,
     # Construct input/output paths
     infile <- here(
       "output/data", "TCGA/European",
-      paste(date, cancer, gene, mutation, "incidence_estimates.tsv",
+      paste(date, cancer, gene, mutation, prop_correction_str, 
+            "incidence_estimates.tsv",
         sep = "_"
       )
     )
@@ -585,7 +589,7 @@ calculate_median_est_incidence_detail <- function(date,
     yat <- limits$yat
     plotfile <- here(
       "output", "figures", "TCGA/European",
-      paste(date, cancer, gene, mutation,
+      paste(date, cancer, gene, mutation, prop_correction_str,
         "segplot.tiff",
         sep = "_"
       )

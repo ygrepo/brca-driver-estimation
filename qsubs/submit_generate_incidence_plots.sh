@@ -87,5 +87,5 @@ for entry in "${params[@]}"; do
     -eo "logs/${jobname}.%J.err" \
     "module purge; module load R/4.4.3; \
      Rscript /sc/arion/projects/DiseaseGeneCell/Huang_lab_project/brca-driver-estimation/code/tcga/generate_incidence_plot.R \
-       -m '$mut' -e '$gene' -c '$cancer'"
+       -m '$mut' -e '$gene' -c '$cancer' -a 'TRUE'"
 done
