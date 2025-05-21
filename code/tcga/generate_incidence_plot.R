@@ -12,7 +12,7 @@ date <- Sys.Date()
 source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg", "-a", "TRUE")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)

@@ -18,7 +18,7 @@ source(here("code", "tcga", "helper_functions.R"))
 set.seed(42)
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg")
+  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg", "-a", "TRUE")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -81,7 +81,7 @@ print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, 
 n_runs <- 10000
 print(paste0("Number of runs:", n_runs))
 prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
-print(paste0("Proportion correction: ", prop_correction))
+print(paste0("Proportion correction: ", args$adj))
 # run bootstrap
 results <- do.call(rbind, sapply(
   1:n_runs,
@@ -96,8 +96,10 @@ results <- do.call(rbind, sapply(
 ))
 
 # generate file name
-filename <- paste(date, args$cancer, args$gene, args$mutation, args$adj, 
-                  "incidence_estimates.tsv", sep = "_")
+filename <- paste(date, args$cancer, args$gene, args$mutation, args$adj,
+  "incidence_estimates.tsv",
+  sep = "_"
+)
 filename <- here("output", "data", "TCGA/European", filename)
 
 # write to file
