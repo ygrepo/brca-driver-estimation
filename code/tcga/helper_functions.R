@@ -612,92 +612,6 @@ calculate_median_est_incidence_detail <- function(date,
   result <- apply(params, 1, process_combination)
   return(result)
 }
-
-# calculate_median_est_incidence_detail <- function(date,
-#                                                   cancer,
-#                                                   gene,
-#                                                   mutation,
-#                                                   adj_flag = TRUE) {
-#   if (adj_flag) {
-#     adj_dir <- "adjusted"
-#   } else {
-#     adj_dir <- "unadjusted"
-#   }
-#   print(paste("Using", adj_dir, "weights"))
-#   # create grid of cancer, gene and mutation type
-#   par <- expand.grid(
-#     cancer = c(cancer), gene = c(gene),
-#     mutation = c(mutation)
-#     # mutation = c("snv", "cna", "deletion", "amplification", "indel")
-#   ) # ,'insertion', 'indelseg','amplificationseg','cnaseg','deletionseg'))
-#   # loop over grid and calculate medians
-#   incidence <- apply(
-#     par,
-#     1,
-#     function(x) {
-#       filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
-#       filename <- here("data", "TCGA", adj_dir, filename)
-#       # filename <- here("output", "data", "TCGA", adj_dir, filename)
-#
-#       # filename <- paste(date, x["cancer"], x["gene"], x["mutation"], "incidence_estimates.tsv", sep = "_")
-#       print(filename)
-#       # filename <- list.files(pattern = fileflag)
-#       tmp <- read.delim(filename, as.is = TRUE)
-#       # read in observed
-#       # # read in observed value
-#       fn <- here("data", "TCGA", "SupplementaryTable01_BRCA_OVCA_SIR.xlsx")
-#       observed <- readxl::read_xlsx(fn, "Formated")
-#       # read.delim("SupplementaryTable01_BRCA_OVCA_SIR.xlsx", as.is = TRUE)
-#       #      observed <- read.delim("observed_incidence_rates.tsv", as.is = TRUE)
-#       # extract median and CIs
-#       ob_median <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Median"][[1]]
-#       ob_L95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "L95"][[1]]
-#       ob_U95 <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "U95"][[1]]
-#       ob_n <- observed[observed$Cancer == x["cancer"] & observed$Gene == x["gene"], "Num"][[1]]
-#       print(paste0("n:", ob_n))
-#       # calculate standard deviation
-#       ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
-#       ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
-#       fn <- paste(date, x["cancer"], x["gene"], x["mutation"], "segplot.tiff", sep = "_")
-#       fn <- here("output", "figures", "TCGA", adj_dir, fn)
-#       print(paste("Saving fig.:", fn))
-#
-#       if (mutation == "cna" && !adj_flag & gene == "BRCA1") {
-#         plots <- create_incidence_segplot(tmp,
-#           ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
-#           filename = fn,
-#           main = paste(x["cancer"], x["gene"]),
-#           driver_max = 15,
-#           ylimits = 80, yat = seq(0, 80, 20)
-#         )
-#       } else if (mutation == "cna" && !adj_flag & gene == "BRCA2") {
-#         plots <- create_incidence_segplot(tmp,
-#           ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
-#           filename = fn,
-#           main = paste(x["cancer"], x["gene"]),
-#           driver_max = 15,
-#           ylimits = 20, yat = seq(0, 20, 5)
-#         )
-#       } else {
-#         plots <- create_incidence_segplot(tmp,
-#           ob_median = ob_median, ob_L95 = ob_L95, ob_U95 = ob_U95,
-#           filename = fn,
-#           main = paste(x["cancer"], x["gene"])
-#         )
-#       }
-#       # calculate median
-#       # apply(tmp[,grep('incidence', colnames(tmp))], 2, median)
-#       # apply KS test
-#       ks <- run_ks_test(tmp, ob_dist)
-#       ks$group <- paste(x["cancer"], x["gene"], x["mutation"], sep = "|")
-#       return(ks)
-#     }
-#   )
-#   # colnames(incidence) <- apply(par, 1, paste, collapse = "_")
-#   # rownames(incidence) <- c("two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen")
-#   return(incidence)
-# }
-
 ### STANDARDIZE WT ON CLINICAL VARIABLES
 ### ################################################################################################
 standardize_clinical_characteristics_breast <- function(
@@ -705,7 +619,12 @@ standardize_clinical_characteristics_breast <- function(
     wt,
     ddr,
     prop_correction = FALSE,
-    out_xlsx = here("output", "data", "TCGA/European", "BRCA_WT_matching_summary.xlsx")) {
+    out_xlsx = NULL) {
+  if (is.null(out_xlsx)) {
+    out_xlsx <- paste(Sys.Date(), "BRCA_WT_matching_summary.xlsx", sep = "_")
+    out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
+  }
+
   if (prop_correction) {
     anno <- remove_stripping_abc(anno, col = "pathologic_stage")
 
@@ -720,15 +639,13 @@ standardize_clinical_characteristics_breast <- function(
       select(Sample.ID, pathologic_stage)
 
     car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
-      mutate(group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+      mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
 
     car_summary <- car_df |>
-      count(group, name = "Carriers_n") |>
+      count(Group, name = "Carriers_N") |>
       mutate(
-        Carriers_pct = Carriers_n / sum(Carriers_n)
-      ) |>
-      mutate(
-        Expected_WT = Carriers_pct * sum(Carriers_n)
+        Carriers_Pct = Carriers_N / sum(Carriers_N),
+        Expected_WT = Carriers_Pct * sum(Carriers_N)
       )
 
 
@@ -744,45 +661,51 @@ standardize_clinical_characteristics_breast <- function(
       select(Sample.ID, pathologic_stage)
 
     wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
-      mutate(group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+      mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
 
     # Adjusted (carriers' joint freq)
     wt_adj_weights <- car_summary |>
       select(
-        group,
-        WT_adj_prop = Carriers_pct
+        Group,
+        WT_Adj_Prop = Carriers_Pct
       )
 
     # adjusted
     wt_for_adj <- wt_df |>
-      left_join(wt_adj_weights, by = "group") |>
+      left_join(wt_adj_weights, by = "Group") |>
       mutate(
-        WT_adj_prop = tidyr::replace_na(WT_adj_prop, 0),
-        WT_adj_prop = as.numeric(WT_adj_prop)
+        WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
+        WT_Adj_Prop = as.numeric(WT_Adj_Prop)
       )
 
     # for adjusted
     wt_adj_draw <- sample(
       x = wt_for_adj$Sample.ID,
       size = length(ddr),
-      prob = wt_for_adj$WT_adj_prop,
+      prob = wt_for_adj$WT_Adj_Prop,
       replace = TRUE
     )
 
-    # Write the summary table to Excel (optional) ----
+    # Write the summary table to Excel ----
     summary_tbl <- car_summary |>
-      full_join(wt_for_adj |>
-        count(group, WT_available_n = n()), by = "group") |>
-      full_join(wt_adj_weights, by = "group") |>
-      tidyr::replace_na(list(
-        Carriers_n     = 0,
-        Carriers_pct   = 0,
+      full_join(
+        wt_for_adj |>
+          count(Group, WT_Available_N = n()) |>
+          rename(WT_Adj_N = n),
+        by = "Group"
+      ) |>
+      full_join(wt_adj_weights, by = "Group") |>
+      replace_na(list(
+        Carriers_N     = 0,
+        Carriers_Pct   = 0,
         Expected_WT    = 0,
-        WT_available_n = 0,
-        WT_unadj_prop  = 0,
-        WT_adj_prop    = 0
+        WT_Available_N = 0,
+        WT_Adj_Prop    = 0,
+        WT_Adj_N       = 0
       )) |>
-      arrange(desc(Carriers_n))
+      arrange(desc(Carriers_N)) |>
+      select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+
 
     wb <- createWorkbook()
     addWorksheet(wb, "WT Matching Summary")
@@ -836,77 +759,83 @@ standardize_clinical_characteristics_ovarian <- function(anno,
                                                          wt,
                                                          ddr,
                                                          prop_correction = FALSE,
-                                                         out_xlsx = here("output", "data", "TCGA/European", "OV_WT_matching_summary.xlsx")) {
+                                                         out_xlsx = NULL) {
+  if (is.null(out_xlsx)) {
+    out_xlsx <- paste(Sys.Date(), "OV_WT_matching_summary.xlsx", sep = "_")
+    out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
+  }
+
   if (prop_correction) {
-    anno <- remove_stripping_abc(anno, col = "pathologic_stage")
+    anno <- remove_stripping_abc(anno, col = "clinical_stage")
 
-    # Read subtype & build carrier summary ----
-    subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
-      select(Sample.ID, BRCA_Subtype_PAM50)
-
-    car_sub <- subtype |> filter(Sample.ID %in% ddr)
     car_stage <- anno |>
       filter(bcr_patient_barcode %in% ddr) |>
       rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, pathologic_stage)
+      select(Sample.ID, clinical_stage)
 
-    car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
-      mutate(group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+    car_df <- car_stage |>
+      mutate(Group = clinical_stage)
 
     car_summary <- car_df |>
-      count(group, name = "Carriers_n") |>
+      count(Group, name = "Carriers_N") |>
       mutate(
-        Carriers_pct = Carriers_n / sum(Carriers_n)
+        Carriers_Pct = Carriers_N / sum(Carriers_N)
       ) |>
       mutate(
-        Expected_WT = Carriers_pct * sum(Carriers_n)
+        Expected_WT = Carriers_Pct * sum(Carriers_N)
       )
 
     # Prepare WT pool ----
     wt_df <- anno |>
       filter(!bcr_patient_barcode %in% ddr) |>
       rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, pathologic_stage) |>
-      rename(group = pathologic_stage)
+      select(Sample.ID, clinical_stage) |>
+      rename(Group = clinical_stage)
 
 
     # Adjusted (carriers' joint freq)
     wt_adj_weights <- car_summary |>
       select(
-        group,
-        WT_adj_prop = Carriers_pct
+        Group,
+        WT_Adj_Prop = Carriers_Pct
       )
 
     # adjusted
     wt_for_adj <- wt_df |>
-      left_join(wt_adj_weights, by = "group") |>
+      left_join(wt_adj_weights, by = "Group") |>
       mutate(
-        WT_adj_prop = tidyr::replace_na(WT_adj_prop, 0),
-        WT_adj_prop = as.numeric(WT_adj_prop)
+        WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
+        WT_Adj_Prop = as.numeric(WT_Adj_Prop)
       )
 
     # for adjusted
     wt_adj_draw <- sample(
       x = wt_for_adj$Sample.ID,
       size = length(ddr),
-      prob = wt_for_adj$WT_adj_prop,
+      prob = wt_for_adj$WT_Adj_Prop,
       replace = FALSE
     )
 
-    # Write the summary table to Excel (optional) ----
+    # Write the summary table to Excel ----
     summary_tbl <- car_summary |>
-      full_join(wt_for_unadj |>
-        count(group, WT_available_n = n()), by = "group") |>
-      full_join(wt_adj_weights, by = "group") |>
-      tidyr::replace_na(list(
-        Carriers_n     = 0,
-        Carriers_pct   = 0,
+      full_join(
+        wt_for_adj |>
+          count(Group, WT_Available_N = n()) |>
+          rename(WT_Adj_N = n),
+        by = "Group"
+      ) |>
+      full_join(wt_adj_weights, by = "Group") |>
+      replace_na(list(
+        Carriers_N     = 0,
+        Carriers_Pct   = 0,
         Expected_WT    = 0,
-        WT_available_n = 0,
-        WT_unadj_prop  = 0,
-        WT_adj_prop    = 0
+        WT_Available_N = 0,
+        WT_Adj_Prop    = 0,
+        WT_Adj_N       = 0
       )) |>
-      arrange(desc(Carriers_n))
+      arrange(desc(Carriers_N)) |>
+      select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+
 
     wb <- createWorkbook()
     addWorksheet(wb, "WT Matching Summary")

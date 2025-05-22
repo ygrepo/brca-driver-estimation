@@ -76,9 +76,14 @@ wt <- can_anno$bcr_patient_barcode[!can_anno$bcr_patient_barcode %in% var_anno$b
 ddr <- ddr[ddr %in% mut_rate$bcr_patient_barcode]
 wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 
+subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+  select(Sample.ID, BRCA_Subtype_PAM50)
+intersect(subtype$Sample.ID, can_anno$bcr_patient_barcode)
+intersect(subtype$Sample.ID, ddr)
+
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-n_runs <- 10000
+n_runs <- 5
 print(paste0("Number of runs:", n_runs))
 prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
 print(paste0("Proportion correction: ", args$adj))
