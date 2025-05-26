@@ -18,7 +18,7 @@ source(here("code", "tcga", "helper_functions.R"))
 set.seed(42)
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA1", "-c", "BRCA", "-m", "cnaseg", "-a", "TRUE")
+  argv <- c("-e", "BRCA1", "-c", "OV", "-m", "cnaseg", "-a", "TRUE")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -39,7 +39,8 @@ var_anno <- read.delim(
 )
 
 # find samples with variants in specified cancer
-ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & var_anno$cancer == args$cancer, "bcr_patient_barcode"]
+ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & 
+                  var_anno$cancer == args$cancer, "bcr_patient_barcode"]
 
 # read in patient annotation
 pat_anno <- read.delim(
@@ -96,6 +97,7 @@ results <- do.call(rbind, sapply(
   wt = wt,
   anno = can_anno,
   cancer = args$cancer,
+  gene = args$gene,
   prop_correction = prop_correction,
   simplify = FALSE
 ))

@@ -61,7 +61,9 @@ calculate_mutation_rate_ratio <- function(int,
                                           wt,
                                           anno,
                                           cancer,
-                                          prop_correction = FALSE) {
+                                          gene,
+                                          prop_correction = FALSE,
+                                          matching_filename = NULL) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
   if (cancer == "BRCA") {
@@ -69,14 +71,18 @@ calculate_mutation_rate_ratio <- function(int,
       anno = anno,
       wt = wt,
       ddr = ddr,
-      prop_correction = prop_correction
+      gene = gene,
+      prop_correction = prop_correction,
+      matching_filename = matching_filename
     )
   } else if (cancer == "OV") {
     wt_sample <- standardize_clinical_characteristics_ovarian(
       anno = anno,
       wt = wt,
       ddr = ddr,
-      prop_correction = prop_correction
+      gene = gene,
+      prop_correction = prop_correction,
+      matching_filename = matching_filename
     )
   } else {
     stop("Please specify a valid cancer type. Options are BRCA or OV ...")
@@ -906,12 +912,8 @@ standardize_global_prop_clinical_characteristics_breast <- function(
     anno,
     wt,
     ddr,
-    out_xlsx = NULL) {
-  if (is.null(out_xlsx)) {
-    out_xlsx <- paste(Sys.Date(), "BRCA_WT_matching_summary.xlsx", sep = "_")
-    out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
-  }
-
+    gene,
+    matching_filename = NULL) {
   # Read subtype & prepare annotation
   subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
     dplyr::select(Sample.ID, BRCA_Subtype_PAM50)
@@ -1014,9 +1016,14 @@ standardize_global_prop_clinical_characteristics_breast <- function(
   openxlsx::addWorksheet(wb, "WT Matching Summary")
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
 
-  if (!file.exists(out_xlsx)) {
-    message("Saving: ", out_xlsx)
-    openxlsx::saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+  if (is.null(matching_filename)) {
+    matching_filename <- paste(Sys.Date(), gene, "BRCA_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+  }
+  
+  if (!file.exists(matching_filename)) {
+    message("Saving: ", matching_filename)
+    openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
   }
 
   # Return Sample.IDs only
@@ -1068,14 +1075,16 @@ standardize_clinical_characteristics_breast <- function(
     anno,
     wt,
     ddr,
+    gene,
     prop_correction = FALSE,
-    out_xlsx = NULL) {
+    matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_breast(
       anno = anno,
       wt = wt,
       ddr = ddr,
-      out_xlsx = out_xlsx
+      gene = gene,
+      matching_filename = matching_filename
     ))
   }
   return(standardize_standard_clinical_characteristics_breast(
@@ -1089,11 +1098,8 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
     anno,
     wt,
     ddr,
-    out_xlsx = NULL) {
-  if (is.null(out_xlsx)) {
-    out_xlsx <- paste(Sys.Date(), "OV_WT_matching_summary.xlsx", sep = "_")
-    out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
-  }
+    gene,
+    matching_filename = NULL) {
 
   # ------------------------------
   # CARRIER GROUP SUMMARY
@@ -1182,9 +1188,15 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
   openxlsx::addWorksheet(wb, "WT Matching Summary")
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
 
-  if (!file.exists(out_xlsx)) {
-    message("Saving: ", out_xlsx)
-    openxlsx::saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+  if (is.null(matching_filename)) {
+    matching_filename <- paste(Sys.Date(), gene, "OV_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+  }
+  
+  
+  if (!file.exists(matching_filename)) {
+    message("Saving: ", matching_filename)
+    openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
   }
 
   return(wt_adj_draw$Sample.ID)
@@ -1219,14 +1231,16 @@ standardize_standard_clinical_characteristics_ovarian <- function(
 standardize_clinical_characteristics_ovarian <- function(anno,
                                                          wt,
                                                          ddr,
+                                                         gene,
                                                          prop_correction = FALSE,
-                                                         out_xlsx = NULL) {
+                                                         matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_ovarian(
       anno = anno,
       wt = wt,
       ddr = ddr,
-      out_xlsx = out_xlsx
+      gene,
+      matching_filename = matching_filename
     ))
   }
 
