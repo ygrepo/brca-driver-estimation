@@ -279,7 +279,10 @@ create_barplot_of_medians <- function(incidence) {
   observed$group <- paste(observed$Cancer, observed$Gene, sep = "_")
   # reformat observed data
   ob_df <- data.frame(
-    driver_number = "observed", group = c(paste(observed$group, "snv", sep = "_"), paste(observed$group, "cna", sep = "_")),
+    driver_number = "observed", group = c(
+      paste(observed$group, "snv", sep = "_"),
+      paste(observed$group, "cna", sep = "_")
+    ),
     incidence = rep(observed$Median, 2)
   )
   plot_data <- rbind(plot_data, ob_df)
@@ -549,7 +552,13 @@ calculate_median_est_incidence_detail <- function(date,
   print(params)
 
   # Read observed data once
-  observed_data <- readxl::read_xlsx(here("data", "TCGA", "SupplementaryTable01_BRCA_OVCA_SIR.xlsx"), "Formated")
+  observed_data <- readxl::read_xlsx(
+    here(
+      "data", "TCGA",
+      "SupplementaryTable01_BRCA_OVCA_SIR.xlsx"
+    ),
+    "Formated"
+  )
 
   process_combination <- function(x) {
     cancer <- x["cancer"]
@@ -614,7 +623,152 @@ calculate_median_est_incidence_detail <- function(date,
 }
 ### STANDARDIZE WT ON CLINICAL VARIABLES
 ### ################################################################################################
-standardize_clinical_characteristics_breast <- function(
+
+
+# # This function is not used in the current workflow, but it can be uncommented and used if needed.
+# standardize_clinical_characteristics_breast <- function(
+#     anno,
+#     wt,
+#     ddr,
+#     prop_correction = FALSE,
+#     out_xlsx = NULL) {
+#   if (is.null(out_xlsx)) {
+#     out_xlsx <- paste(Sys.Date(), "BRCA_WT_matching_summary.xlsx", sep = "_")
+#     out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
+#   }
+#
+#   if (prop_correction) {
+#     anno <- remove_stripping_abc(anno, col = "pathologic_stage")
+#
+#     # Read subtype & build carrier summary ----
+#     subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+#       select(Sample.ID, BRCA_Subtype_PAM50)
+#
+#     car_sub <- subtype |> filter(Sample.ID %in% ddr)
+#     car_stage <- anno |>
+#       filter(bcr_patient_barcode %in% ddr) |>
+#       rename(Sample.ID = bcr_patient_barcode) |>
+#       select(Sample.ID, pathologic_stage)
+#
+#     car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
+#       mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+#
+#     car_summary <- car_df |>
+#       count(Group, name = "Carriers_N") |>
+#       mutate(
+#         Carriers_Pct = Carriers_N / sum(Carriers_N),
+#         Expected_WT = Carriers_Pct * sum(Carriers_N)
+#       )
+#
+#
+#     # Prepare WT pool ----
+#     wt_sub <- subtype |>
+#       filter(!Sample.ID %in% ddr) |>
+#       filter(Sample.ID %in% wt)
+#
+#
+#     wt_stage <- anno |>
+#       filter(bcr_patient_barcode %in% wt) |>
+#       rename(Sample.ID = bcr_patient_barcode) |>
+#       select(Sample.ID, pathologic_stage)
+#
+#     wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+#       mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+#
+#     # Adjusted (carriers' joint freq)
+#     wt_adj_weights <- car_summary |>
+#       select(
+#         Group,
+#         WT_Adj_Prop = Carriers_Pct
+#       )
+#
+#     # adjusted
+#     wt_for_adj <- wt_df |>
+#       left_join(wt_adj_weights, by = "Group") |>
+#       mutate(
+#         WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
+#         WT_Adj_Prop = as.numeric(WT_Adj_Prop)
+#       )
+#
+#     # for adjusted
+#     wt_adj_draw <- sample(
+#       x = wt_for_adj$Sample.ID,
+#       size = length(ddr),
+#       prob = wt_for_adj$WT_Adj_Prop,
+#       replace = TRUE
+#     )
+#
+#     # Write the summary table to Excel ----
+#     summary_tbl <- car_summary |>
+#       full_join(
+#         wt_for_adj |>
+#           count(Group, WT_Available_N = n()) |>
+#           rename(WT_Adj_N = n),
+#         by = "Group"
+#       ) |>
+#       full_join(wt_adj_weights, by = "Group") |>
+#       replace_na(list(
+#         Carriers_N     = 0,
+#         Carriers_Pct   = 0,
+#         Expected_WT    = 0,
+#         WT_Available_N = 0,
+#         WT_Adj_Prop    = 0,
+#         WT_Adj_N       = 0
+#       )) |>
+#       arrange(desc(Carriers_N)) |>
+#       select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+#
+#
+#     wb <- createWorkbook()
+#     addWorksheet(wb, "WT Matching Summary")
+#     writeData(wb, "WT Matching Summary", summary_tbl)
+#     if (!file.exists(out_xlsx)) {
+#       message("Saving: ", out_xlsx)
+#       saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+#     } else {
+#       #    message("File already exists, skipping save: ", out_xlsx)
+#     }
+#
+#     return(wt_adj_draw)
+#   }
+#
+#   # Read subtype & build carrier summary ----
+#   subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+#     select(Sample.ID, BRCA_Subtype_PAM50)
+#
+#   subtype <- subtype[, c("Sample.ID", "BRCA_Subtype_PAM50")]
+#   # find carrier subtypes and calculate prop
+#   car_sub <- subtype[subtype$Sample.ID %in% ddr, ]
+#   car_sub_prop <- table(car_sub$BRCA_Subtype_PAM50) / nrow(car_sub)
+#   # only keep wt
+#   wt_sub <- subtype[!subtype$Sample.ID %in% ddr, ]
+#   # only keep wt that have mutation data
+#   wt_sub <- wt_sub[wt_sub$Sample.ID %in% wt, ]
+#
+#   # find carrier pathologic stage
+#   car_stage <- anno[anno$bcr_patient_barcode %in% ddr, ]
+#   car_stage_prop <- table(car_stage$pathologic_stage) / nrow(car_stage)
+#   # only keep wt
+#   wt_stage <- anno[!anno$bcr_patient_barcode %in% ddr, c("bcr_patient_barcode", "pathologic_stage")]
+#   # only keep wt that have mutation data
+#   wt_stage <- wt_stage[wt_stage$bcr_patient_barcode %in% wt, ]
+#   # merge stage and subtypes
+#   colnames(wt_stage) <- gsub("bcr_patient_barcode", "Sample.ID", colnames(wt_stage))
+#   wt_df <- merge(wt_sub, wt_stage, by = "Sample.ID")
+#   wt_df$group <- paste(wt_df$BRCA_Subtype_PAM50, wt_df$pathologic_stage, sep = "|")
+#   # get weights of each group
+#   group_weights <- as.data.frame(table(wt_df$group))
+#   colnames(group_weights) <- c("group", "prop")
+#   group_weights$prop <- group_weights$prop / nrow(wt_df)
+#   # add weights
+#   wt_df <- merge(wt_df, group_weights, by = "group")
+#   # randomly sample wt
+#   wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
+#   return(wt_sample$Sample.ID)
+# }
+
+
+standardize_group_quota_clinical_characteristics_breast <- function(
     anno,
     wt,
     ddr,
@@ -625,101 +779,254 @@ standardize_clinical_characteristics_breast <- function(
     out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
   }
 
-  if (prop_correction) {
-    anno <- remove_stripping_abc(anno, col = "pathologic_stage")
+  anno <- remove_stripping_abc(anno, col = "pathologic_stage")
 
-    # Read subtype & build carrier summary ----
-    subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
-      select(Sample.ID, BRCA_Subtype_PAM50)
+  # Load subtype info and define carrier groups
+  subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+    dplyr::select(Sample.ID, BRCA_Subtype_PAM50)
 
-    car_sub <- subtype |> filter(Sample.ID %in% ddr)
-    car_stage <- anno |>
-      filter(bcr_patient_barcode %in% ddr) |>
-      rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, pathologic_stage)
+  car_sub <- subtype |> dplyr::filter(Sample.ID %in% ddr)
+  car_stage <- anno |>
+    dplyr::filter(bcr_patient_barcode %in% ddr) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, pathologic_stage)
 
-    car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
-      mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+  car_df <- dplyr::inner_join(car_sub, car_stage, by = "Sample.ID") |>
+    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
 
-    car_summary <- car_df |>
-      count(Group, name = "Carriers_N") |>
-      mutate(
-        Carriers_Pct = Carriers_N / sum(Carriers_N),
-        Expected_WT = Carriers_Pct * sum(Carriers_N)
-      )
-
-
-    # Prepare WT pool ----
-    wt_sub <- subtype |>
-      filter(!Sample.ID %in% ddr) |>
-      filter(Sample.ID %in% wt)
-
-
-    wt_stage <- anno |>
-      filter(bcr_patient_barcode %in% wt) |>
-      rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, pathologic_stage)
-
-    wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
-      mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
-
-    # Adjusted (carriers' joint freq)
-    wt_adj_weights <- car_summary |>
-      select(
-        Group,
-        WT_Adj_Prop = Carriers_Pct
-      )
-
-    # adjusted
-    wt_for_adj <- wt_df |>
-      left_join(wt_adj_weights, by = "Group") |>
-      mutate(
-        WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
-        WT_Adj_Prop = as.numeric(WT_Adj_Prop)
-      )
-
-    # for adjusted
-    wt_adj_draw <- sample(
-      x = wt_for_adj$Sample.ID,
-      size = length(ddr),
-      prob = wt_for_adj$WT_Adj_Prop,
-      replace = TRUE
+  car_summary <- car_df |>
+    dplyr::count(Group, name = "Carriers_N") |>
+    dplyr::mutate(
+      Carriers_Pct = Carriers_N / sum(Carriers_N),
+      Expected_WT = round(Carriers_Pct * sum(Carriers_N))
     )
 
-    # Write the summary table to Excel ----
-    summary_tbl <- car_summary |>
-      full_join(
-        wt_for_adj |>
-          count(Group, WT_Available_N = n()) |>
-          rename(WT_Adj_N = n),
-        by = "Group"
-      ) |>
-      full_join(wt_adj_weights, by = "Group") |>
-      replace_na(list(
-        Carriers_N     = 0,
-        Carriers_Pct   = 0,
-        Expected_WT    = 0,
-        WT_Available_N = 0,
-        WT_Adj_Prop    = 0,
-        WT_Adj_N       = 0
-      )) |>
-      arrange(desc(Carriers_N)) |>
-      select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+  # Prepare WT pool
+  wt_sub <- subtype |>
+    dplyr::filter(!Sample.ID %in% ddr, Sample.ID %in% wt)
+
+  wt_stage <- anno |>
+    dplyr::filter(bcr_patient_barcode %in% wt) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, pathologic_stage)
+
+  wt_df <- dplyr::inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+
+  # Merge Expected_WT into WT pool
+  wt_for_adj <- dplyr::left_join(wt_df, car_summary |>
+    dplyr::select(Group, Expected_WT, WT_Adj_Prop = Carriers_Pct), by = "Group") |>
+    dplyr::mutate(
+      Expected_WT = tidyr::replace_na(Expected_WT, 0),
+      WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0)
+    )
+
+  # Count available samples per group
+  available_counts <- wt_for_adj |>
+    dplyr::count(Group, name = "WT_Available_N")
+
+  # Enrich with sampling strategy info
+  wt_sampling_info <- dplyr::left_join(wt_for_adj, available_counts, by = "Group") |>
+    dplyr::mutate(
+      WT_Available_N = tidyr::replace_na(WT_Available_N, 0),
+      N_Draw = Expected_WT,
+      use_replace = N_Draw > WT_Available_N
+    )
+
+  # Perform sampling with dynamic replacement
+  wt_adj_draw <- wt_sampling_info |>
+    dplyr::filter(N_Draw > 0) |>
+    dplyr::group_by(Group) |>
+    dplyr::group_modify(~ {
+      n_draw <- unique(.x$N_Draw)
+      replace_flag <- unique(.x$use_replace)
+
+      if (length(n_draw) != 1 || length(replace_flag) != 1) {
+        stop("Group has inconsistent N_Draw or use_replace.")
+      }
+
+      dplyr::slice_sample(.x, n = n_draw, replace = replace_flag) |>
+        dplyr::select(Sample.ID) # Do NOT include Group manually
+    }) |>
+    dplyr::ungroup()
 
 
-    wb <- createWorkbook()
-    addWorksheet(wb, "WT Matching Summary")
-    writeData(wb, "WT Matching Summary", summary_tbl)
-    if (!file.exists(out_xlsx)) {
-      message("Saving: ", out_xlsx)
-      saveWorkbook(wb, out_xlsx, overwrite = FALSE)
-    } else {
-      #    message("File already exists, skipping save: ", out_xlsx)
-    }
 
-    return(wt_adj_draw)
+  # Log groups that required replacement
+  sampling_log <- wt_sampling_info |>
+    dplyr::distinct(Group, WT_Available_N, Expected_WT) |>
+    dplyr::mutate(Used_Replacement = Expected_WT > WT_Available_N)
+
+  if (any(sampling_log$Used_Replacement)) {
+    message("Groups that required replacement:")
+    print(sampling_log |> dplyr::filter(Used_Replacement))
+  } else {
+    message("All groups had sufficient WT samples (no replacement needed).")
   }
 
+  # Summary table
+  available_wt_counts <- wt_for_adj |>
+    dplyr::count(Group, name = "WT_Available_N")
+
+  drawn_wt_counts <- wt_adj_draw |>
+    dplyr::count(Group, name = "WT_Adj_N")
+
+  summary_tbl <- car_summary |>
+    full_join(available_wt_counts, by = "Group") |>
+    full_join(drawn_wt_counts, by = "Group") |>
+    mutate(
+      WT_Adj_Prop = ifelse(WT_Available_N > 0, WT_Adj_N / WT_Available_N, 0)
+    ) |>
+    tidyr::replace_na(list(
+      Carriers_N     = 0,
+      Carriers_Pct   = 0,
+      Expected_WT    = 0,
+      WT_Available_N = 0,
+      WT_Adj_Prop    = 0,
+      WT_Adj_N       = 0
+    )) |>
+    arrange(desc(Carriers_N)) |>
+    select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+
+
+  # Export to Excel
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "WT Matching Summary")
+  openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+
+  if (!file.exists(out_xlsx)) {
+    message("Saving: ", out_xlsx)
+    openxlsx::saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+  }
+
+  return(wt_adj_draw$Sample.ID)
+}
+
+standardize_global_prop_clinical_characteristics_breast <- function(
+    anno,
+    wt,
+    ddr,
+    out_xlsx = NULL) {
+  if (is.null(out_xlsx)) {
+    out_xlsx <- paste(Sys.Date(), "BRCA_WT_matching_summary.xlsx", sep = "_")
+    out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
+  }
+
+  # Read subtype & prepare annotation
+  subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+    dplyr::select(Sample.ID, BRCA_Subtype_PAM50)
+
+  anno <- remove_stripping_abc(anno, col = "pathologic_stage")
+
+  # ------------------------------
+  # CARRIER GROUP SUMMARY
+  # ------------------------------
+  car_sub <- subtype |> dplyr::filter(Sample.ID %in% ddr)
+  car_stage <- anno |>
+    dplyr::filter(bcr_patient_barcode %in% ddr) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, pathologic_stage)
+
+  car_df <- dplyr::inner_join(car_sub, car_stage, by = "Sample.ID") |>
+    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+
+  car_summary <- car_df |>
+    dplyr::count(Group, name = "Carriers_N") |>
+    dplyr::mutate(
+      Carriers_Pct = Carriers_N / sum(Carriers_N),
+      Expected_WT = Carriers_Pct * sum(Carriers_N)
+    )
+
+  # ------------------------------
+  # WT POOL PREPARATION
+  # ------------------------------
+  wt_sub <- subtype |>
+    dplyr::filter(!Sample.ID %in% ddr, Sample.ID %in% wt)
+
+  wt_stage <- anno |>
+    dplyr::filter(bcr_patient_barcode %in% wt) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, pathologic_stage)
+
+  wt_df <- dplyr::inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+
+  # ------------------------------
+  # GLOBAL PROBABILITY-BASED SAMPLING
+  # ------------------------------
+  # Compute expected samples per group based on available WT
+  sampling_plan <- wt_df |>
+    dplyr::count(Group, name = "WT_Available_N") |>
+    dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
+    dplyr::mutate(
+      Carriers_Pct = tidyr::replace_na(Carriers_Pct, 0),
+      WT_Available_N = tidyr::replace_na(WT_Available_N, 0),
+      Expected_WT = round(Carriers_Pct * WT_Available_N)
+    )
+
+  # Join expected draws back to WT data
+  wt_for_sampling <- wt_df |>
+    dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
+    dplyr::filter(Expected_WT > 0)
+
+  # Sample per group
+  wt_adj_draw <- wt_for_sampling |>
+    dplyr::group_by(Group) |>
+    dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
+    dplyr::ungroup()
+
+  # ------------------------------
+  # SUMMARY TABLE
+  # ------------------------------
+  available_wt_counts <- wt_df |>
+    dplyr::count(Group, name = "WT_Available_N")
+
+  drawn_wt_counts <- wt_adj_draw |>
+    dplyr::count(Group, name = "WT_Adj_N")
+
+  summary_tbl <- car_summary |>
+    dplyr::full_join(available_wt_counts, by = "Group") |>
+    dplyr::full_join(drawn_wt_counts, by = "Group") |>
+    dplyr::mutate(
+      WT_Adj_Prop = ifelse(WT_Available_N > 0, WT_Adj_N / WT_Available_N, 0)
+    ) |>
+    tidyr::replace_na(list(
+      Carriers_N     = 0,
+      Carriers_Pct   = 0,
+      Expected_WT    = 0,
+      WT_Available_N = 0,
+      WT_Adj_Prop    = 0,
+      WT_Adj_N       = 0
+    )) |>
+    dplyr::arrange(dplyr::desc(Carriers_N)) |>
+    dplyr::select(Group, Carriers_N, Carriers_Pct, 
+                  WT_Available_N, WT_Adj_Prop, 
+                  WT_Adj_N) |>
+    dplyr::mutate(
+      Carriers_Pct = round(Carriers_Pct, 2),
+      WT_Adj_Prop = round(WT_Adj_Prop, 2)
+    )
+    
+  # ------------------------------
+  # EXPORT TO EXCEL
+  # ------------------------------
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "WT Matching Summary")
+  openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+
+  if (!file.exists(out_xlsx)) {
+    message("Saving: ", out_xlsx)
+    openxlsx::saveWorkbook(wb, out_xlsx, overwrite = FALSE)
+  }
+
+  # Return Sample.IDs only
+  return(wt_adj_draw$Sample.ID)
+}
+
+standardize_standard_clinical_characteristics_breast <- function(
+    anno,
+    wt,
+    ddr) {
   # Read subtype & build carrier summary ----
   subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
     select(Sample.ID, BRCA_Subtype_PAM50)
@@ -755,106 +1062,147 @@ standardize_clinical_characteristics_breast <- function(
   return(wt_sample$Sample.ID)
 }
 
-standardize_clinical_characteristics_ovarian <- function(anno,
-                                                         wt,
-                                                         ddr,
-                                                         prop_correction = FALSE,
-                                                         out_xlsx = NULL) {
+
+
+standardize_clinical_characteristics_breast <- function(
+    anno,
+    wt,
+    ddr,
+    prop_correction = FALSE,
+    out_xlsx = NULL) {
+  if (prop_correction) {
+    return(standardize_global_prop_clinical_characteristics_breast(
+      anno = anno,
+      wt = wt,
+      ddr = ddr,
+      out_xlsx = out_xlsx
+    ))
+  }
+  return(standardize_standard_clinical_characteristics_breast(
+    anno = anno,
+    wt = wt,
+    ddr = ddr
+  ))
+}
+
+standardize_global_prop_clinical_characteristics_ovarian <- function(
+    anno,
+    wt,
+    ddr,
+    out_xlsx = NULL) {
   if (is.null(out_xlsx)) {
     out_xlsx <- paste(Sys.Date(), "OV_WT_matching_summary.xlsx", sep = "_")
     out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
   }
 
-  if (prop_correction) {
-    anno <- remove_stripping_abc(anno, col = "clinical_stage")
+  # ------------------------------
+  # CARRIER GROUP SUMMARY
+  # ------------------------------
+  anno <- remove_stripping_abc(anno, col = "clinical_stage")
 
-    car_stage <- anno |>
-      filter(bcr_patient_barcode %in% ddr) |>
-      rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, clinical_stage)
+  car_stage <- anno |>
+    dplyr::filter(bcr_patient_barcode %in% ddr) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, clinical_stage)
 
-    car_df <- car_stage |>
-      mutate(Group = clinical_stage)
+  car_df <- car_stage |>
+    dplyr::mutate(Group = clinical_stage)
 
-    car_summary <- car_df |>
-      count(Group, name = "Carriers_N") |>
-      mutate(
-        Carriers_Pct = Carriers_N / sum(Carriers_N)
-      ) |>
-      mutate(
-        Expected_WT = Carriers_Pct * sum(Carriers_N)
-      )
-
-    # Prepare WT pool ----
-    wt_df <- anno |>
-      filter(!bcr_patient_barcode %in% ddr) |>
-      rename(Sample.ID = bcr_patient_barcode) |>
-      select(Sample.ID, clinical_stage) |>
-      rename(Group = clinical_stage)
-
-
-    # Adjusted (carriers' joint freq)
-    wt_adj_weights <- car_summary |>
-      select(
-        Group,
-        WT_Adj_Prop = Carriers_Pct
-      )
-
-    # adjusted
-    wt_for_adj <- wt_df |>
-      left_join(wt_adj_weights, by = "Group") |>
-      mutate(
-        WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
-        WT_Adj_Prop = as.numeric(WT_Adj_Prop)
-      )
-
-    # for adjusted
-    wt_adj_draw <- sample(
-      x = wt_for_adj$Sample.ID,
-      size = length(ddr),
-      prob = wt_for_adj$WT_Adj_Prop,
-      replace = FALSE
+  car_summary <- car_df |>
+    dplyr::count(Group, name = "Carriers_N") |>
+    dplyr::mutate(
+      Carriers_Pct = Carriers_N / sum(Carriers_N)
     )
 
-    # Write the summary table to Excel ----
-    summary_tbl <- car_summary |>
-      full_join(
-        wt_for_adj |>
-          count(Group, WT_Available_N = n()) |>
-          rename(WT_Adj_N = n),
-        by = "Group"
-      ) |>
-      full_join(wt_adj_weights, by = "Group") |>
-      replace_na(list(
-        Carriers_N     = 0,
-        Carriers_Pct   = 0,
-        Expected_WT    = 0,
-        WT_Available_N = 0,
-        WT_Adj_Prop    = 0,
-        WT_Adj_N       = 0
-      )) |>
-      arrange(desc(Carriers_N)) |>
-      select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
+  # ------------------------------
+  # WT POOL PREPARATION
+  # ------------------------------
+  wt_df <- anno |>
+    dplyr::filter(!bcr_patient_barcode %in% ddr, bcr_patient_barcode %in% wt) |>
+    dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+    dplyr::select(Sample.ID, clinical_stage) |>
+    dplyr::rename(Group = clinical_stage)
 
+  # Compute WT available per group
+  wt_available <- wt_df |>
+    dplyr::count(Group, name = "WT_Available_N")
 
-    wb <- createWorkbook()
-    addWorksheet(wb, "WT Matching Summary")
-    writeData(wb, "WT Matching Summary", summary_tbl)
-    if (!file.exists(out_xlsx)) {
-      message("Saving: ", out_xlsx)
-      saveWorkbook(wb, out_xlsx, overwrite = FALSE)
-    } else {
-      #    message("File already exists, skipping save: ", out_xlsx)
-    }
+  # Compute expected draw per group based on WT availability
+  sampling_plan <- wt_available |>
+    dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
+    dplyr::mutate(
+      Carriers_Pct = tidyr::replace_na(Carriers_Pct, 0),
+      Expected_WT = round(Carriers_Pct * WT_Available_N)
+    )
 
-    return(wt_adj_draw)
+  # Merge expected counts into WT pool
+  wt_for_sampling <- wt_df |>
+    dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
+    dplyr::filter(Expected_WT > 0)
+
+  # Sample per group proportionally
+  wt_adj_draw <- wt_for_sampling |>
+    dplyr::group_by(Group) |>
+    dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
+    dplyr::ungroup()
+
+  # ------------------------------
+  # SUMMARY TABLE
+  # ------------------------------
+  drawn_wt_counts <- wt_adj_draw |>
+    dplyr::count(Group, name = "WT_Adj_N")
+
+  summary_tbl <- car_summary |>
+    dplyr::full_join(sampling_plan |> dplyr::select(Group, WT_Available_N, Expected_WT), by = "Group") |>
+    dplyr::full_join(drawn_wt_counts, by = "Group") |>
+    dplyr::mutate(
+      WT_Adj_Prop = ifelse(WT_Available_N > 0, WT_Adj_N / WT_Available_N, 0)
+    ) |>
+    tidyr::replace_na(list(
+      Carriers_N     = 0,
+      Carriers_Pct   = 0,
+      Expected_WT    = 0,
+      WT_Available_N = 0,
+      WT_Adj_Prop    = 0,
+      WT_Adj_N       = 0
+    )) |>
+    dplyr::arrange(dplyr::desc(Carriers_N)) |>
+    dplyr::select(Group, Carriers_N, Carriers_Pct, 
+                  WT_Available_N, WT_Adj_Prop, 
+                  WT_Adj_N) |>
+    dplyr::mutate(
+      Carriers_Pct = round(Carriers_Pct, 2),
+      WT_Adj_Prop = round(WT_Adj_Prop, 2)
+    )
+
+  # ------------------------------
+  # EXPORT TO EXCEL
+  # ------------------------------
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "WT Matching Summary")
+  openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+
+  if (!file.exists(out_xlsx)) {
+    message("Saving: ", out_xlsx)
+    openxlsx::saveWorkbook(wb, out_xlsx, overwrite = FALSE)
   }
 
+  return(wt_adj_draw$Sample.ID)
+}
+
+
+standardize_standard_clinical_characteristics_ovarian <- function(
+    anno,
+    wt,
+    ddr) {
   # find carrier pathologic stage
   car_stage <- anno[anno$bcr_patient_barcode %in% ddr, ]
   car_stage_prop <- table(car_stage$pathologic_stage) / nrow(car_stage)
   # only keep wt
-  wt_stage <- anno[!anno$bcr_patient_barcode %in% ddr, c("bcr_patient_barcode", "clinical_stage")]
+  wt_stage <- anno[
+    !anno$bcr_patient_barcode %in% ddr,
+    c("bcr_patient_barcode", "clinical_stage")
+  ]
   # only keep wt that have mutation data
   wt_stage <- wt_stage[wt_stage$bcr_patient_barcode %in% wt, ]
   # calculate stage weight
@@ -866,6 +1214,27 @@ standardize_clinical_characteristics_ovarian <- function(anno,
   # randomly sample wt
   wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
   return(wt_sample$bcr_patient_barcode)
+}
+
+standardize_clinical_characteristics_ovarian <- function(anno,
+                                                         wt,
+                                                         ddr,
+                                                         prop_correction = FALSE,
+                                                         out_xlsx = NULL) {
+  if (prop_correction) {
+    return(standardize_global_prop_clinical_characteristics_ovarian(
+      anno = anno,
+      wt = wt,
+      ddr = ddr,
+      out_xlsx = out_xlsx
+    ))
+  }
+
+  return(standardize_standard_clinical_characteristics_ovarian(
+    anno = anno,
+    wt = wt,
+    ddr = ddr
+  ))
 }
 
 ### ADD SUBTYPE AND STAGE #########################################################################

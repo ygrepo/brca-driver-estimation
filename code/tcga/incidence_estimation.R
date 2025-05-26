@@ -83,7 +83,7 @@ intersect(subtype$Sample.ID, ddr)
 
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-n_runs <- 5
+n_runs <- 10000
 print(paste0("Number of runs:", n_runs))
 prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
 print(paste0("Proportion correction: ", args$adj))
