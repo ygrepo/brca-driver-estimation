@@ -18,7 +18,11 @@ source(here("code", "tcga", "helper_functions.R"))
 set.seed(42)
 if (interactive()) {
   # Mimic command-line input
-  argv <- c("-e", "BRCA1", "-c", "OV", "-m", "cnaseg", "-a", "TRUE")
+  argv <- c("-e", "BRCA1", 
+            "-c", "OV", 
+            "-m", "cnaseg", 
+            "-a", "TRUE",
+            "-l", "TRUE")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -28,7 +32,8 @@ parser <- ArgumentParser()
 parser$add_argument("-e", "--gene", type = "character", help = "gene")
 parser$add_argument("-c", "--cancer", type = "character", help = "cancer type")
 parser$add_argument("-m", "--mutation", type = "character", help = "mutation type")
-parser$add_argument("-a", "--adj", type = "character", help = "Prop Adjustment (TRUE/FALSE or yes/no)")
+parser$add_argument("-a", "--adj", type = "character", help = "Prop Correction (TRUE/FALSE or yes/no)")
+parser$add_argument("-l", "--loh", type = "character", help = "LOH Correction (TRUE/FALSE or yes/no)")
 args <- parser$parse_args(argv)
 print(args)
 
@@ -37,6 +42,13 @@ var_anno <- read.delim(
   here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
   as.is = TRUE
 )
+
+if (args$loh == "TRUE" || tolower(args$loh) %in% c("true", "t", "1", "yes", "y")) {
+  # filter for LOH variants
+  args$loh <- "TRUE"
+  print("Filtering for LOH variants")
+  var_anno <- var_anno[var_anno$LOH_classification == "Significant", ]
+}
 
 # find samples with variants in specified cancer
 ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & 
@@ -62,7 +74,7 @@ target_ancestry <- target_ancestry |>
   select(patient, consensus_ancestry) |>
   filter(consensus_ancestry == "eur")
 
-length(intersect(target_ancestry$patient, can_anno$bcr_patient_barcode))
+#length(intersect(target_ancestry$patient, can_anno$bcr_patient_barcode))
 can_anno <- can_anno |>
   filter(bcr_patient_barcode %in% target_ancestry$patient)
 
@@ -79,12 +91,14 @@ wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 
 subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
   select(Sample.ID, BRCA_Subtype_PAM50)
-intersect(subtype$Sample.ID, can_anno$bcr_patient_barcode)
-intersect(subtype$Sample.ID, ddr)
+#intersect(subtype$Sample.ID, can_anno$bcr_patient_barcode)
+#intersect(subtype$Sample.ID, ddr)
 
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
 n_runs <- 10000
+#n_runs <- 1
+
 print(paste0("Number of runs:", n_runs))
 prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
 print(paste0("Proportion correction: ", args$adj))
@@ -99,11 +113,14 @@ results <- do.call(rbind, sapply(
   cancer = args$cancer,
   gene = args$gene,
   prop_correction = prop_correction,
+  loh_correction = args$loh,
   simplify = FALSE
 ))
 
 # generate file name
-filename <- paste(date, args$cancer, args$gene, args$mutation, args$adj,
+filename <- paste(date, args$cancer, args$gene, args$mutation, 
+                  "Prop", args$adj,
+                  "loh", args$loh,
   "incidence_estimates.tsv",
   sep = "_"
 )

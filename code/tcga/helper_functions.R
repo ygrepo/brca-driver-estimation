@@ -63,6 +63,7 @@ calculate_mutation_rate_ratio <- function(int,
                                           cancer,
                                           gene,
                                           prop_correction = FALSE,
+                                          loh_correction = NULL,
                                           matching_filename = NULL) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
@@ -73,6 +74,7 @@ calculate_mutation_rate_ratio <- function(int,
       ddr = ddr,
       gene = gene,
       prop_correction = prop_correction,
+      loh_correction = loh_correction,
       matching_filename = matching_filename
     )
   } else if (cancer == "OV") {
@@ -82,6 +84,7 @@ calculate_mutation_rate_ratio <- function(int,
       ddr = ddr,
       gene = gene,
       prop_correction = prop_correction,
+      loh_correction = loh_correction,
       matching_filename = matching_filename
     )
   } else {
@@ -550,7 +553,8 @@ calculate_median_est_incidence_detail <- function(date,
                                                   cancer,
                                                   gene,
                                                   mutation,
-                                                  prop_correction = FALSE) {
+                                                  prop_correction = FALSE,
+                                                  loh_correction = NULL) {
   prop_correction_str <- as.character(prop_correction)
 
   # Define parameter combinations
@@ -572,13 +576,13 @@ calculate_median_est_incidence_detail <- function(date,
     mutation <- x["mutation"]
 
     # Construct input/output paths
-    infile <- here(
-      "output/data", "TCGA/European",
-      paste(date, cancer, gene, mutation, prop_correction_str,
-        "incidence_estimates.tsv",
-        sep = "_"
-      )
+    infile <- paste(date, args$cancer, args$gene, args$mutation, 
+                      "Prop", prop_correction_str,
+                      "loh", loh_correction,
+                      "incidence_estimates.tsv",
+                      sep = "_"
     )
+    infile <- here("output", "data", "TCGA/European", infile)
     message("Reading file: ", infile)
 
 
@@ -604,7 +608,9 @@ calculate_median_est_incidence_detail <- function(date,
     yat <- limits$yat
     plotfile <- here(
       "output", "figures", "TCGA/European",
-      paste(date, cancer, gene, mutation, prop_correction_str,
+      paste(date, cancer, gene, mutation, 
+            "Prop",prop_correction_str,
+            "loh", loh_correction,
         "segplot.tiff",
         sep = "_"
       )
@@ -629,149 +635,6 @@ calculate_median_est_incidence_detail <- function(date,
 }
 ### STANDARDIZE WT ON CLINICAL VARIABLES
 ### ################################################################################################
-
-
-# # This function is not used in the current workflow, but it can be uncommented and used if needed.
-# standardize_clinical_characteristics_breast <- function(
-#     anno,
-#     wt,
-#     ddr,
-#     prop_correction = FALSE,
-#     out_xlsx = NULL) {
-#   if (is.null(out_xlsx)) {
-#     out_xlsx <- paste(Sys.Date(), "BRCA_WT_matching_summary.xlsx", sep = "_")
-#     out_xlsx <- here("output", "data", "TCGA/European", out_xlsx)
-#   }
-#
-#   if (prop_correction) {
-#     anno <- remove_stripping_abc(anno, col = "pathologic_stage")
-#
-#     # Read subtype & build carrier summary ----
-#     subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
-#       select(Sample.ID, BRCA_Subtype_PAM50)
-#
-#     car_sub <- subtype |> filter(Sample.ID %in% ddr)
-#     car_stage <- anno |>
-#       filter(bcr_patient_barcode %in% ddr) |>
-#       rename(Sample.ID = bcr_patient_barcode) |>
-#       select(Sample.ID, pathologic_stage)
-#
-#     car_df <- inner_join(car_sub, car_stage, by = "Sample.ID") |>
-#       mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
-#
-#     car_summary <- car_df |>
-#       count(Group, name = "Carriers_N") |>
-#       mutate(
-#         Carriers_Pct = Carriers_N / sum(Carriers_N),
-#         Expected_WT = Carriers_Pct * sum(Carriers_N)
-#       )
-#
-#
-#     # Prepare WT pool ----
-#     wt_sub <- subtype |>
-#       filter(!Sample.ID %in% ddr) |>
-#       filter(Sample.ID %in% wt)
-#
-#
-#     wt_stage <- anno |>
-#       filter(bcr_patient_barcode %in% wt) |>
-#       rename(Sample.ID = bcr_patient_barcode) |>
-#       select(Sample.ID, pathologic_stage)
-#
-#     wt_df <- inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
-#       mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
-#
-#     # Adjusted (carriers' joint freq)
-#     wt_adj_weights <- car_summary |>
-#       select(
-#         Group,
-#         WT_Adj_Prop = Carriers_Pct
-#       )
-#
-#     # adjusted
-#     wt_for_adj <- wt_df |>
-#       left_join(wt_adj_weights, by = "Group") |>
-#       mutate(
-#         WT_Adj_Prop = tidyr::replace_na(WT_Adj_Prop, 0),
-#         WT_Adj_Prop = as.numeric(WT_Adj_Prop)
-#       )
-#
-#     # for adjusted
-#     wt_adj_draw <- sample(
-#       x = wt_for_adj$Sample.ID,
-#       size = length(ddr),
-#       prob = wt_for_adj$WT_Adj_Prop,
-#       replace = TRUE
-#     )
-#
-#     # Write the summary table to Excel ----
-#     summary_tbl <- car_summary |>
-#       full_join(
-#         wt_for_adj |>
-#           count(Group, WT_Available_N = n()) |>
-#           rename(WT_Adj_N = n),
-#         by = "Group"
-#       ) |>
-#       full_join(wt_adj_weights, by = "Group") |>
-#       replace_na(list(
-#         Carriers_N     = 0,
-#         Carriers_Pct   = 0,
-#         Expected_WT    = 0,
-#         WT_Available_N = 0,
-#         WT_Adj_Prop    = 0,
-#         WT_Adj_N       = 0
-#       )) |>
-#       arrange(desc(Carriers_N)) |>
-#       select(Group, Carriers_N, Carriers_Pct, Expected_WT, WT_Available_N, WT_Adj_Prop, WT_Adj_N)
-#
-#
-#     wb <- createWorkbook()
-#     addWorksheet(wb, "WT Matching Summary")
-#     writeData(wb, "WT Matching Summary", summary_tbl)
-#     if (!file.exists(out_xlsx)) {
-#       message("Saving: ", out_xlsx)
-#       saveWorkbook(wb, out_xlsx, overwrite = FALSE)
-#     } else {
-#       #    message("File already exists, skipping save: ", out_xlsx)
-#     }
-#
-#     return(wt_adj_draw)
-#   }
-#
-#   # Read subtype & build carrier summary ----
-#   subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
-#     select(Sample.ID, BRCA_Subtype_PAM50)
-#
-#   subtype <- subtype[, c("Sample.ID", "BRCA_Subtype_PAM50")]
-#   # find carrier subtypes and calculate prop
-#   car_sub <- subtype[subtype$Sample.ID %in% ddr, ]
-#   car_sub_prop <- table(car_sub$BRCA_Subtype_PAM50) / nrow(car_sub)
-#   # only keep wt
-#   wt_sub <- subtype[!subtype$Sample.ID %in% ddr, ]
-#   # only keep wt that have mutation data
-#   wt_sub <- wt_sub[wt_sub$Sample.ID %in% wt, ]
-#
-#   # find carrier pathologic stage
-#   car_stage <- anno[anno$bcr_patient_barcode %in% ddr, ]
-#   car_stage_prop <- table(car_stage$pathologic_stage) / nrow(car_stage)
-#   # only keep wt
-#   wt_stage <- anno[!anno$bcr_patient_barcode %in% ddr, c("bcr_patient_barcode", "pathologic_stage")]
-#   # only keep wt that have mutation data
-#   wt_stage <- wt_stage[wt_stage$bcr_patient_barcode %in% wt, ]
-#   # merge stage and subtypes
-#   colnames(wt_stage) <- gsub("bcr_patient_barcode", "Sample.ID", colnames(wt_stage))
-#   wt_df <- merge(wt_sub, wt_stage, by = "Sample.ID")
-#   wt_df$group <- paste(wt_df$BRCA_Subtype_PAM50, wt_df$pathologic_stage, sep = "|")
-#   # get weights of each group
-#   group_weights <- as.data.frame(table(wt_df$group))
-#   colnames(group_weights) <- c("group", "prop")
-#   group_weights$prop <- group_weights$prop / nrow(wt_df)
-#   # add weights
-#   wt_df <- merge(wt_df, group_weights, by = "group")
-#   # randomly sample wt
-#   wt_sample <- sample_n(wt_df, size = length(ddr), weight = wt_df$prop)
-#   return(wt_sample$Sample.ID)
-# }
 
 
 standardize_group_quota_clinical_characteristics_breast <- function(
@@ -913,6 +776,7 @@ standardize_global_prop_clinical_characteristics_breast <- function(
     wt,
     ddr,
     gene,
+    loh_correction,
     matching_filename = NULL) {
   # Read subtype & prepare annotation
   subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
@@ -1017,7 +881,7 @@ standardize_global_prop_clinical_characteristics_breast <- function(
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
 
   if (is.null(matching_filename)) {
-    matching_filename <- paste(Sys.Date(), gene, "BRCA_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- paste(Sys.Date(), gene, "loh", loh_correction, "BRCA_WT_matching_summary.xlsx", sep = "_")
     matching_filename <- here("output", "data", "TCGA/European", matching_filename)
   }
   
@@ -1077,6 +941,7 @@ standardize_clinical_characteristics_breast <- function(
     ddr,
     gene,
     prop_correction = FALSE,
+    loh_correction = NULL,
     matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_breast(
@@ -1084,6 +949,7 @@ standardize_clinical_characteristics_breast <- function(
       wt = wt,
       ddr = ddr,
       gene = gene,
+      loh_correction = loh_correction,
       matching_filename = matching_filename
     ))
   }
@@ -1099,6 +965,7 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
     wt,
     ddr,
     gene,
+    loh_correction = NULL,
     matching_filename = NULL) {
 
   # ------------------------------
@@ -1189,7 +1056,7 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
 
   if (is.null(matching_filename)) {
-    matching_filename <- paste(Sys.Date(), gene, "OV_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- paste(Sys.Date(), gene, "loh", loh_correction, "OV_WT_matching_summary.xlsx", sep = "_")
     matching_filename <- here("output", "data", "TCGA/European", matching_filename)
   }
   
@@ -1233,6 +1100,7 @@ standardize_clinical_characteristics_ovarian <- function(anno,
                                                          ddr,
                                                          gene,
                                                          prop_correction = FALSE,
+                                                         loh_correction = NULL,
                                                          matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_ovarian(
@@ -1240,6 +1108,7 @@ standardize_clinical_characteristics_ovarian <- function(anno,
       wt = wt,
       ddr = ddr,
       gene,
+      loh_correction = loh_correction,
       matching_filename = matching_filename
     ))
   }
