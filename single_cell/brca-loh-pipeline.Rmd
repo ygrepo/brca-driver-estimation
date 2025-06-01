@@ -1,0 +1,262 @@
+---
+title: "BRCA OV Driver - BRCA LOH Pipeline"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+    code_folding: show
+---
+## **Library**
+```{r message=FALSE, warning=FALSE}
+#install.packages("tidyverse")
+library(tidyverse)
+#install.packages("openxlsx")
+library(openxlsx)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("ggplot2")
+library(ggplot2)
+#install.packages("kableExtra")
+library(kableExtra)
+#install.packages("data.table")
+library(data.table)
+# install.packages("ggbeeswarm")
+library(ggbeeswarm)
+# install.packages("readr")
+library(readr)
+# install.packages("gridExtra")
+library(gridExtra)
+# install.packages("ggpubr")
+library(ggpubr)
+# install.packages("grid")
+library(grid)
+# install.packages("gt")
+library(gt)
+# install.packages("biomaRt")
+library(biomaRt)
+# install.packages("RColorBrewer")
+library(RColorBrewer)
+# install.packages("stringr")
+library(stringr)
+# install.packages("vroom")
+library(vroom)
+# install.packages("patchwork")
+library(patchwork)
+# install.packages("tidyr")
+library(tidyr)
+# install.packages("cowplot")
+library(cowplot)
+# install.packages("ggrepel")
+library(ggrepel)
+# install.packages("gdata")
+library(gdata)
+#install.packages("biomaRt")
+library(biomaRt)
+#install.packages("GenomicRanges")
+library(GenomicRanges)
+#BiocManager::install("rtracklayer")
+library(rtracklayer)
+#BiocManager::install("GenomicRanges")
+library(GenomicRanges)
+#install.packages("rtracklayer")
+library(rtracklayer)
+#BiocManager::install("AnnotationHub")
+library(AnnotationHub)
+#BiocManager::install("biomaRt")
+library(biomaRt)
+```
+## **Load CNV Data into dataframes and GRanges files**
+```{r}
+read_cnv_data <- function(filepath) {
+#!!!!!!!!!!!!!!!!!!!!!!!!! EDIT RAW FILES !!!!!!!!!!!!!!!!!!!!!!!!!
+  #read and process CNV data
+  cnv_data <- read.csv(filepath) %>%
+    mutate(
+      genotype = ifelse(grepl("B1-6548", sample), "B1/B2", sub("-.*", "", sample)), #rename samples
+      sample = gsub("-", ".", sample) #rename samples
+    ) %>%
+    dplyr::select(cell_id, chr, state, sample, genotype, start, end) #filter columns
+  
+  #read in sample info
+  cancer.history <- read.xlsx("~/brca-new/Williams et al./williams-samples.xlsx")
+  cancer.history <- cancer.history %>% 
+    mutate(patient_id = gsub("-", ".", patient_id)) %>% #rename samples
+    rename(patient_id = "sample",
+           current_past_cancer.in.contralateral.breast = "cancer",
+           Final.Path.Diagnosis = "tissue") %>%
+    dplyr::select(sample, chemo, cancer, tissue)
+  
+  #edit sample info
+  cancer.history$chemo <- gsub("N/A", "no chemo", cancer.history$chemo) 
+  cancer.history$chemo <- gsub("N", "no chemo", cancer.history$chemo) 
+  cancer.history$chemo <- gsub("Y", "chemo", cancer.history$chemo) 
+  cancer.history$tissue <- gsub("R:", "", cancer.history$tissue) 
+  cancer.history$tissue <- gsub("R: ", "", cancer.history$tissue) 
+  cancer.history$tissue <- gsub("L: ", "", cancer.history$tissue)
+  cancer.history$tissue <- gsub(" UDH", "", cancer.history$tissue)
+  cancer.history$tissue <- gsub(" cysts", "", cancer.history$tissue)
+  cancer.history$tissue <- gsub(" non-proliferative", "", cancer.history$tissue)
+  cancer.history$tissue <- gsub(" ", "", cancer.history$tissue)
+  #add sample info to df
+  cnv_data <- cnv_data %>%
+    left_join(cancer.history, by = "sample")
+  #create GRanges object
+  gr <- GRanges(
+    seqnames = cnv_data$chr,
+    ranges = IRanges(start = cnv_data$start, end = cnv_data$end),
+    mcols = cnv_data[, !(names(cnv_data) %in% c("chr", "start", "end"))]
+  )
+#!!!!!!!!!!!!!!!!!!!!!!!!! NAME SAMPLE DFS !!!!!!!!!!!!!!!!!!!!!!!!!
+  #generate name
+  if ("sample" %in% colnames(cnv_data)) {
+    sample_name <- unique(cnv_data$sample)[1]
+  } else {
+    sample_name <- tools::file_path_sans_ext(basename(filepath))
+  }
+  #Assign df and gr to global environment
+  assign(paste0(sample_name, "_df"), cnv_data, envir = .GlobalEnv)
+  assign(paste0(sample_name, "_gr"), gr, envir = .GlobalEnv)
+  #return sample name
+  #return(sample_name)
+  
+  list(gr = assign(paste0(sample_name, "_gr"), gr, envir = .GlobalEnv), 
+       df = assign(paste0(sample_name, "_df"), cnv_data, envir = .GlobalEnv))
+}
+#arrange file paths
+files <- c(
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET43-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET49-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET6410-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET6537-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET6548-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B1HET6550-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET16-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET18-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET21-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET23-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET25-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/B2HET6532-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/WT6-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/WT62-hscn.csv",
+  "/Users/mahadbihie/brca-new/data_directory/allele_specific_cn/WT6752-hscn.csv"
+)
+#run multiple files through function
+  #df_names won't be used as a vrbl, just gnrts dfs
+#df_names <- lapply(files, read_cnv_data) 
+#combine dfs
+#df.cnv <- rbind(B1.43_df, B1.49_df)
+```
+## **Extract Exon Annotations** 
+```{r} 
+get_exons_from_ah <- function(transcript_ids = NULL) {  
+  #Retrieve canonical transcript for BRCA1, BRCA2, TP53   
+  #connect to Ensembl (GRCh38 by default)   
+  ensembl <- useEnsembl(biomart = "ensembl",                          dataset = "hsapiens_gene_ensembl")      
+  
+  #get canonical transcript for BRCA1   
+  canonical <- getBM(     attributes = c("external_gene_name", "ensembl_gene_id",               
+                                         "ensembl_transcript_id", "transcript_is_canonical"),     
+                          filters = "external_gene_name",     values = c("BRCA1", "BRCA2", "TP53"),     
+                          mart = ensembl   )      
+ 
+  #filter to canonical transcript   
+  canonical <- na.omit(canonical)   
+  transcript_ids <- canonical$ensembl_transcript_id  
+  
+  #Retrieve gene exon annotations from AnnotationHub   
+  library(AnnotationHub)   
+  ah <- AnnotationHub()    
+  
+  #query for Ensembl GTFs for Homo sapiens GRCh38   
+  gtf <- query(ah, c("Homo sapiens", "Ensembl", "GRCh38", "gtf"))[[1]]    
+  
+  #filter for exon entries   
+  exons <- gtf[gtf$type == "exon"]    
+  
+  #filter out entries without exon_number   
+  exons <- exons[!is.na(exons$exon_number)]    
+  
+  #filter to only the desired transcript IDs (if provided)   
+  if (!is.null(transcript_ids)) {     exons <- exons[exons$transcript_id %in% transcript_ids]   }    
+  
+  return(exons) } 
+``` 
+## **Filter for BRCA1, BRCA2, TP53 Exons**
+```{r}
+filter_target_genes <- function(exons, genes = c("BRCA1", "BRCA2", "TP53")) {
+  exons[exons$gene_name %in% genes]
+}
+```
+## **Find Overlaps Between CNVs and Exons**
+```{r}
+find_cnv_exon_overlaps <- function(cnv_list, exons) {
+  cnv_gr <- cnv_list$gr
+  cnv_df <- cnv_list$df
+  hits <- findOverlaps(cnv_gr, exons)
+  
+  overlap_df <- data.frame(
+    cnv_df[queryHits(hits), ],
+    gene = exons$gene_name[subjectHits(hits)],
+    exon_number = exons$exon_number[subjectHits(hits)],
+    exon_start = start(exons)[subjectHits(hits)],
+    exon_end = end(exons)[subjectHits(hits)]
+  )
+  
+  return(overlap_df)
+}
+```
+## **Output Results**
+```{r}
+write_overlap_results <- function(overlap_df, output_file) {
+  write.table(overlap_df, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+}
+```
+## **Main Pipeline**
+```{r}
+main <- function(cnv_file) {
+  cnv_list <- read_cnv_data(cnv_file)
+  exons <- get_exons_from_ah()
+  target_exons <- filter_target_genes(exons)
+  overlaps <- find_cnv_exon_overlaps(cnv_list, target_exons)
+  
+  # extract sample name from file path
+  sample_name <- cnv_list$df$sample[1]
+  
+  # format output filename
+  output_file <- paste0("~/brca-new/own data/cnv_exon_overlaps_", sample_name, ".tsv")
+  
+  write_overlap_results(overlaps, output_file)
+}
+```
+## **Run Pipeline**
+```{r}
+#run pipeline
+lapply(files, main)
+#vector of sample names
+samples <- c("B1.43", "B1.49", "B1.6410", "B1.6537", "B1.6548", "B1.6550",
+             "B2.6532","B2.18", "B2.25", "B2.16", "B2.21", "B2.23",
+             "WT.6", "WT.62", "WT.6752")
+#function to read each overlap file
+read_overlaps <- function(samples) {
+  #create an empty named list to store each sample's data
+  result <- list()
+  for (sample in samples) {
+    file_path <- paste0("~/brca-new/own data/cnv_exon_overlaps_", sample, ".tsv")
+    data <- read.table(file_path, header = TRUE, sep = "\t")
+    result[[sample]] <- data  #name each list element by sample
+  }
+  return(result)
+}
+#read all samples at once
+overlap_data_list <- read_overlaps(samples)
+#combine dfs
+overlap_df <- rbind(overlap_data_list$B1.43, overlap_data_list$B1.49,    
+            overlap_data_list$B1.6410, overlap_data_list$B1.6537, 
+            overlap_data_list$B1.6548, overlap_data_list$B1.6550,
+            overlap_data_list$B2.6532, overlap_data_list$B2.18,   
+            overlap_data_list$B2.25, overlap_data_list$B2.16, 
+            overlap_data_list$B2.21, overlap_data_list$B2.23,
+            overlap_data_list$WT.6, overlap_data_list$WT.62, 
+            overlap_data_list$WT.6752)
+```

@@ -19,10 +19,11 @@ set.seed(42)
 if (interactive()) {
   # Mimic command-line input
   argv <- c("-e", "BRCA1", 
-            "-c", "OV", 
-            "-m", "cnaseg", 
+            "-c", "BRCA", 
+            "-m", "cna", 
             "-a", "TRUE",
-            "-l", "TRUE")
+            "-l", "TRUE",
+            "-t", "TRUE")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -34,6 +35,7 @@ parser$add_argument("-c", "--cancer", type = "character", help = "cancer type")
 parser$add_argument("-m", "--mutation", type = "character", help = "mutation type")
 parser$add_argument("-a", "--adj", type = "character", help = "Prop Correction (TRUE/FALSE or yes/no)")
 parser$add_argument("-l", "--loh", type = "character", help = "LOH Correction (TRUE/FALSE or yes/no)")
+parser$add_argument("-t", "--tp53", type = "character", help = "TP53 Correction (TRUE/FALSE or yes/no)")
 args <- parser$parse_args(argv)
 print(args)
 
@@ -42,6 +44,7 @@ var_anno <- read.delim(
   here("data", "TCGA", "PCA_pathVar_integrated_filtered_adjusted_ancestry.tsv"),
   as.is = TRUE
 )
+var_anno |> glimpse() 
 
 if (args$loh == "TRUE" || tolower(args$loh) %in% c("true", "t", "1", "yes", "y")) {
   # filter for LOH variants
@@ -53,6 +56,7 @@ if (args$loh == "TRUE" || tolower(args$loh) %in% c("true", "t", "1", "yes", "y")
 # find samples with variants in specified cancer
 ddr <- var_anno[var_anno$HUGO_Symbol == args$gene & 
                   var_anno$cancer == args$cancer, "bcr_patient_barcode"]
+
 
 # read in patient annotation
 pat_anno <- read.delim(
@@ -89,19 +93,33 @@ wt <- can_anno$bcr_patient_barcode[!can_anno$bcr_patient_barcode %in% var_anno$b
 ddr <- ddr[ddr %in% mut_rate$bcr_patient_barcode]
 wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 
-subtype <- read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
-  select(Sample.ID, BRCA_Subtype_PAM50)
-#intersect(subtype$Sample.ID, can_anno$bcr_patient_barcode)
-#intersect(subtype$Sample.ID, ddr)
-
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-n_runs <- 10000
-#n_runs <- 1
+#n_runs <- 10000
+n_runs <- 1
 
 print(paste0("Number of runs:", n_runs))
+
 prop_correction <- tolower(args$adj) %in% c("true", "t", "1", "yes", "y")
 print(paste0("Proportion correction: ", args$adj))
+
+tp53_correction <- tolower(args$tp53) %in% c("true", "t", "1", "yes", "y")
+message(paste0("TP53 correction: ", tp53_correction))
+
+tp53_status_df <- NULL
+if (tp53_correction) {
+  message("Reading MC3 MAF for TP53 deletions...")
+  mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
+  df_del <- mc3 |> dplyr::filter(Hugo_Symbol == "TP53", Variant_Type == "DEL")
+  tp53_del_samples <- unique(substr(df_del$Tumor_Sample_Barcode, 1, 12))
+  all_samples <- unique(substr(mc3$Tumor_Sample_Barcode, 1, 12))
+  tp53_status_df <- tibble::tibble(
+    Sample.ID = all_samples,
+    TP53_Status = ifelse(all_samples %in% tp53_del_samples, "TP53_DEL", "TP53_WT")
+  )
+}
+
+
 # run bootstrap
 results <- do.call(rbind, sapply(
   1:n_runs,
@@ -114,13 +132,21 @@ results <- do.call(rbind, sapply(
   gene = args$gene,
   prop_correction = prop_correction,
   loh_correction = args$loh,
+  tp53_status_df = tp53_status_df,
   simplify = FALSE
 ))
 
 # generate file name
+if (tp53_correction) {
+  tp53_correction <- "TRUE"
+} else {
+  tp53_correction <- "FALSE"
+}
+
 filename <- paste(date, args$cancer, args$gene, args$mutation, 
                   "Prop", args$adj,
                   "loh", args$loh,
+                  "tp53", tp53_correction,
   "incidence_estimates.tsv",
   sep = "_"
 )

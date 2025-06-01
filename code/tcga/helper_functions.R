@@ -64,6 +64,7 @@ calculate_mutation_rate_ratio <- function(int,
                                           gene,
                                           prop_correction = FALSE,
                                           loh_correction = NULL,
+                                          tp53_status_df = NULL,
                                           matching_filename = NULL) {
   # sample ddr and non ddr samples
   ddr_sample <- sample(ddr, length(ddr), replace = TRUE)
@@ -75,6 +76,7 @@ calculate_mutation_rate_ratio <- function(int,
       gene = gene,
       prop_correction = prop_correction,
       loh_correction = loh_correction,
+      tp53_status_df = tp53_status_df,
       matching_filename = matching_filename
     )
   } else if (cancer == "OV") {
@@ -85,6 +87,7 @@ calculate_mutation_rate_ratio <- function(int,
       gene = gene,
       prop_correction = prop_correction,
       loh_correction = loh_correction,
+      tp53_status_df = tp53_status_df,
       matching_filename = matching_filename
     )
   } else {
@@ -554,7 +557,8 @@ calculate_median_est_incidence_detail <- function(date,
                                                   gene,
                                                   mutation,
                                                   prop_correction = FALSE,
-                                                  loh_correction = NULL) {
+                                                  loh_correction = NULL,
+                                                  tp53_correction= "FALSE") {
   prop_correction_str <- as.character(prop_correction)
 
   # Define parameter combinations
@@ -579,6 +583,7 @@ calculate_median_est_incidence_detail <- function(date,
     infile <- paste(date, args$cancer, args$gene, args$mutation, 
                       "Prop", prop_correction_str,
                       "loh", loh_correction,
+                      "tp53", tp53_correction,
                       "incidence_estimates.tsv",
                       sep = "_"
     )
@@ -611,6 +616,7 @@ calculate_median_est_incidence_detail <- function(date,
       paste(date, cancer, gene, mutation, 
             "Prop",prop_correction_str,
             "loh", loh_correction,
+            "tp53", tp53_correction,
         "segplot.tiff",
         sep = "_"
       )
@@ -635,7 +641,6 @@ calculate_median_est_incidence_detail <- function(date,
 }
 ### STANDARDIZE WT ON CLINICAL VARIABLES
 ### ################################################################################################
-
 
 standardize_group_quota_clinical_characteristics_breast <- function(
     anno,
@@ -777,13 +782,15 @@ standardize_global_prop_clinical_characteristics_breast <- function(
     ddr,
     gene,
     loh_correction,
+    tp53_status_df = NULL,
     matching_filename = NULL) {
+  
   # Read subtype & prepare annotation
   subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
     dplyr::select(Sample.ID, BRCA_Subtype_PAM50)
-
+  
   anno <- remove_stripping_abc(anno, col = "pathologic_stage")
-
+  
   # ------------------------------
   # CARRIER GROUP SUMMARY
   # ------------------------------
@@ -792,35 +799,52 @@ standardize_global_prop_clinical_characteristics_breast <- function(
     dplyr::filter(bcr_patient_barcode %in% ddr) |>
     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
     dplyr::select(Sample.ID, pathologic_stage)
-
-  car_df <- dplyr::inner_join(car_sub, car_stage, by = "Sample.ID") |>
-    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
-
+  
+  car_df <- dplyr::inner_join(car_sub, car_stage, by = "Sample.ID")
+  
+  if (!is.null(tp53_status_df)) {
+    car_df <- dplyr::left_join(car_df, tp53_status_df, by = "Sample.ID")
+  } else {
+    car_df <- dplyr::mutate(car_df, TP53_Status = NULL)
+  }
+  
+  car_df <- car_df |> dplyr::mutate(
+    TP53_Status = ifelse(is.na(TP53_Status), "TP53_WT", TP53_Status),
+    Group = paste(BRCA_Subtype_PAM50, pathologic_stage, TP53_Status, sep = "|")
+  )
+  
   car_summary <- car_df |>
     dplyr::count(Group, name = "Carriers_N") |>
     dplyr::mutate(
       Carriers_Pct = Carriers_N / sum(Carriers_N),
       Expected_WT = Carriers_Pct * sum(Carriers_N)
     )
-
+  
   # ------------------------------
   # WT POOL PREPARATION
   # ------------------------------
-  wt_sub <- subtype |>
-    dplyr::filter(!Sample.ID %in% ddr, Sample.ID %in% wt)
-
+  wt_sub <- subtype |> dplyr::filter(!Sample.ID %in% ddr, Sample.ID %in% wt)
   wt_stage <- anno |>
     dplyr::filter(bcr_patient_barcode %in% wt) |>
     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
     dplyr::select(Sample.ID, pathologic_stage)
-
-  wt_df <- dplyr::inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
-    dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
-
+  
+  wt_df <- dplyr::inner_join(wt_sub, wt_stage, by = "Sample.ID")
+  
+  if (!is.null(tp53_status_df)) {
+    wt_df <- dplyr::left_join(wt_df, tp53_status_df, by = "Sample.ID")
+  } else {
+    wt_df <- dplyr::mutate(wt_df, TP53_Status = NULL)
+  }
+  
+  wt_df <- wt_df |> dplyr::mutate(
+    TP53_Status = ifelse(is.na(TP53_Status), "TP53_WT", TP53_Status),
+    Group = paste(BRCA_Subtype_PAM50, pathologic_stage, TP53_Status, sep = "|")
+  )
+  
   # ------------------------------
   # GLOBAL PROBABILITY-BASED SAMPLING
   # ------------------------------
-  # Compute expected samples per group based on available WT
   sampling_plan <- wt_df |>
     dplyr::count(Group, name = "WT_Available_N") |>
     dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
@@ -829,27 +853,22 @@ standardize_global_prop_clinical_characteristics_breast <- function(
       WT_Available_N = tidyr::replace_na(WT_Available_N, 0),
       Expected_WT = round(Carriers_Pct * WT_Available_N)
     )
-
-  # Join expected draws back to WT data
+  
   wt_for_sampling <- wt_df |>
     dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
     dplyr::filter(Expected_WT > 0)
-
-  # Sample per group
+  
   wt_adj_draw <- wt_for_sampling |>
     dplyr::group_by(Group) |>
     dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
     dplyr::ungroup()
-
+  
   # ------------------------------
   # SUMMARY TABLE
   # ------------------------------
-  available_wt_counts <- wt_df |>
-    dplyr::count(Group, name = "WT_Available_N")
-
-  drawn_wt_counts <- wt_adj_draw |>
-    dplyr::count(Group, name = "WT_Adj_N")
-
+  available_wt_counts <- wt_df |> dplyr::count(Group, name = "WT_Available_N")
+  drawn_wt_counts <- wt_adj_draw |> dplyr::count(Group, name = "WT_Adj_N")
+  
   summary_tbl <- car_summary |>
     dplyr::full_join(available_wt_counts, by = "Group") |>
     dplyr::full_join(drawn_wt_counts, by = "Group") |>
@@ -872,16 +891,25 @@ standardize_global_prop_clinical_characteristics_breast <- function(
       Carriers_Pct = round(Carriers_Pct, 2),
       WT_Adj_Prop = round(WT_Adj_Prop, 2)
     )
-    
+  
   # ------------------------------
   # EXPORT TO EXCEL
   # ------------------------------
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "WT Matching Summary")
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+  
+  if (is.null(tp53_status_df)) {
+    tp53_correction <- "FALSE"
+  } else {
+    tp53_correction <- "TRUE"
+  }
 
   if (is.null(matching_filename)) {
-    matching_filename <- paste(Sys.Date(), gene, "loh", loh_correction, "BRCA_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- paste(Sys.Date(), gene, 
+                               "loh", loh_correction, 
+                               "tp53", tp53_correction,
+                               "BRCA_WT_matching_summary.xlsx", sep = "_")
     matching_filename <- here("output", "data", "TCGA/European", matching_filename)
   }
   
@@ -889,10 +917,166 @@ standardize_global_prop_clinical_characteristics_breast <- function(
     message("Saving: ", matching_filename)
     openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
   }
-
-  # Return Sample.IDs only
+  
   return(wt_adj_draw$Sample.ID)
 }
+
+# 
+# standardize_global_prop_clinical_characteristics_breast <- function(
+#     anno,
+#     wt,
+#     ddr,
+#     gene,
+#     loh_correction,
+#     tp53_correction,
+#     matching_filename = NULL) {
+#   # Read subtype & prepare annotation
+#   subtype <- readxl::read_xlsx(here("data/TCGA", "mmc4.xlsx"), skip = 1) |>
+#     dplyr::select(Sample.ID, BRCA_Subtype_PAM50)
+# 
+#   anno <- remove_stripping_abc(anno, col = "pathologic_stage")
+# 
+#   # ------------------------------
+#   # CARRIER GROUP SUMMARY
+#   # ------------------------------
+#   car_sub <- subtype |> dplyr::filter(Sample.ID %in% ddr)
+#   car_stage <- anno |>
+#     dplyr::filter(bcr_patient_barcode %in% ddr) |>
+#     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+#     dplyr::select(Sample.ID, pathologic_stage)
+# 
+#   car_df <- dplyr::inner_join(car_sub, car_stage, by = "Sample.ID") |>
+#     dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+# 
+#   if (tp53_correction) {
+#     # TP53 DEL CARRIER GROUP
+#     # Read MC3 MAF and filter for TP53 deletions
+#     message("Reading MC3 MAF for TP53 deletions...")
+#     mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
+#     df_del <- mc3 |> filter(Hugo_Symbol == "TP53")
+#     df_del <- df_del[df_del$Variant_Type == "DEL", ]
+#     tp53_del_samples <- unique(substr(df_del$Tumor_Sample_Barcode, 1, 12))
+#     tp53_status <- tibble::tibble(
+#       Sample.ID = unique(substr(mc3$Tumor_Sample_Barcode, 1, 12)),
+#       TP53_DEL = Sample.ID %in% tp53_del_samples
+#     )
+#     # Join TP53 status to car_df
+#     car_df <- dplyr::left_join(car_df, tp53_status, by = "Sample.ID") |>
+#       dplyr::mutate(
+#         Group = ifelse(TP53_DEL, paste(Group, "TP53_DEL", sep = "|"), Group)
+#       ) |>
+#       dplyr::select(-TP53_DEL)
+#   }
+#   
+#   car_summary <- car_df |>
+#     dplyr::count(Group, name = "Carriers_N") |>
+#     dplyr::mutate(
+#       Carriers_Pct = Carriers_N / sum(Carriers_N),
+#       Expected_WT = Carriers_Pct * sum(Carriers_N)
+#     )
+# 
+#   # ------------------------------
+#   # WT POOL PREPARATION
+#   # ------------------------------
+#   wt_sub <- subtype |>
+#     dplyr::filter(!Sample.ID %in% ddr, Sample.ID %in% wt)
+# 
+#   wt_stage <- anno |>
+#     dplyr::filter(bcr_patient_barcode %in% wt) |>
+#     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+#     dplyr::select(Sample.ID, pathologic_stage)
+# 
+#   wt_df <- dplyr::inner_join(wt_sub, wt_stage, by = "Sample.ID") |>
+#     dplyr::mutate(Group = paste(BRCA_Subtype_PAM50, pathologic_stage, sep = "|"))
+# 
+#   if (tp53_correction) {
+#     # Join TP53 status to wt_df
+#     wt_df <- dplyr::left_join(wt_df, tp53_status, by = "Sample.ID") |>
+#       dplyr::mutate(
+#         Group = ifelse(TP53_DEL, paste(Group, "TP53_DEL", sep = "|"), Group)
+#       ) |>
+#       dplyr::select(-TP53_DEL)
+#   }
+#   
+#   # ------------------------------
+#   # GLOBAL PROBABILITY-BASED SAMPLING
+#   # ------------------------------
+#   # Compute expected samples per group based on available WT
+#   sampling_plan <- wt_df |>
+#     dplyr::count(Group, name = "WT_Available_N") |>
+#     dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
+#     dplyr::mutate(
+#       Carriers_Pct = tidyr::replace_na(Carriers_Pct, 0),
+#       WT_Available_N = tidyr::replace_na(WT_Available_N, 0),
+#       Expected_WT = round(Carriers_Pct * WT_Available_N)
+#     )
+# 
+#   # Join expected draws back to WT data
+#   wt_for_sampling <- wt_df |>
+#     dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
+#     dplyr::filter(Expected_WT > 0)
+# 
+#   # Sample per group
+#   wt_adj_draw <- wt_for_sampling |>
+#     dplyr::group_by(Group) |>
+#     dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
+#     dplyr::ungroup()
+# 
+#   # ------------------------------
+#   # SUMMARY TABLE
+#   # ------------------------------
+#   available_wt_counts <- wt_df |>
+#     dplyr::count(Group, name = "WT_Available_N")
+# 
+#   drawn_wt_counts <- wt_adj_draw |>
+#     dplyr::count(Group, name = "WT_Adj_N")
+# 
+#   summary_tbl <- car_summary |>
+#     dplyr::full_join(available_wt_counts, by = "Group") |>
+#     dplyr::full_join(drawn_wt_counts, by = "Group") |>
+#     dplyr::mutate(
+#       WT_Adj_Prop = ifelse(WT_Available_N > 0, WT_Adj_N / WT_Available_N, 0)
+#     ) |>
+#     tidyr::replace_na(list(
+#       Carriers_N     = 0,
+#       Carriers_Pct   = 0,
+#       Expected_WT    = 0,
+#       WT_Available_N = 0,
+#       WT_Adj_Prop    = 0,
+#       WT_Adj_N       = 0
+#     )) |>
+#     dplyr::arrange(dplyr::desc(Carriers_N)) |>
+#     dplyr::select(Group, Carriers_N, Carriers_Pct, 
+#                   WT_Available_N, WT_Adj_Prop, 
+#                   WT_Adj_N) |>
+#     dplyr::mutate(
+#       Carriers_Pct = round(Carriers_Pct, 2),
+#       WT_Adj_Prop = round(WT_Adj_Prop, 2)
+#     )
+#     
+#   # ------------------------------
+#   # EXPORT TO EXCEL
+#   # ------------------------------
+#   wb <- openxlsx::createWorkbook()
+#   openxlsx::addWorksheet(wb, "WT Matching Summary")
+#   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+# 
+#   if (is.null(matching_filename)) {
+#     matching_filename <- paste(Sys.Date(), gene, 
+#                                "loh", loh_correction, 
+#                                "tp53", tp53_correction,
+#                                "BRCA_WT_matching_summary.xlsx", sep = "_")
+#     matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+#   }
+#   
+#   if (!file.exists(matching_filename)) {
+#     message("Saving: ", matching_filename)
+#     openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
+#   }
+# 
+#   # Return Sample.IDs only
+#   return(wt_adj_draw$Sample.ID)
+# }
 
 standardize_standard_clinical_characteristics_breast <- function(
     anno,
@@ -942,6 +1126,7 @@ standardize_clinical_characteristics_breast <- function(
     gene,
     prop_correction = FALSE,
     loh_correction = NULL,
+    tp53_status_df = FALSE,
     matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_breast(
@@ -950,6 +1135,7 @@ standardize_clinical_characteristics_breast <- function(
       ddr = ddr,
       gene = gene,
       loh_correction = loh_correction,
+      tp53_status_df = tp53_status_df,
       matching_filename = matching_filename
     ))
   }
@@ -966,40 +1152,59 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
     ddr,
     gene,
     loh_correction = NULL,
+    tp53_status_df = NULL,
     matching_filename = NULL) {
+  
+  anno <- remove_stripping_abc(anno, col = "clinical_stage")
 
+  
   # ------------------------------
   # CARRIER GROUP SUMMARY
   # ------------------------------
-  anno <- remove_stripping_abc(anno, col = "clinical_stage")
-
   car_stage <- anno |>
     dplyr::filter(bcr_patient_barcode %in% ddr) |>
     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
     dplyr::select(Sample.ID, clinical_stage)
-
-  car_df <- car_stage |>
-    dplyr::mutate(Group = clinical_stage)
-
+  
+  if (!is.null(tp53_status_df)) {
+    car_stage <- dplyr::left_join(car_stage, tp53_status_df, by = "Sample.ID") |>
+      dplyr::mutate(
+        TP53_Status = ifelse(is.na(TP53_Status), "TP53_WT", TP53_Status),
+        Group = paste(clinical_stage, TP53_Status, sep = "|")
+      )
+  } else {
+    car_stage <- car_stage |>
+      dplyr::mutate(Group = clinical_stage)
+  }
+  
+  car_df <- car_stage
   car_summary <- car_df |>
     dplyr::count(Group, name = "Carriers_N") |>
     dplyr::mutate(
       Carriers_Pct = Carriers_N / sum(Carriers_N)
     )
-
+  
   # ------------------------------
   # WT POOL PREPARATION
   # ------------------------------
   wt_df <- anno |>
     dplyr::filter(!bcr_patient_barcode %in% ddr, bcr_patient_barcode %in% wt) |>
     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
-    dplyr::select(Sample.ID, clinical_stage) |>
-    dplyr::rename(Group = clinical_stage)
-
+    dplyr::select(Sample.ID, clinical_stage)
+  
+  if (!is.null(tp53_status_df)) {
+    wt_df <- dplyr::left_join(wt_df, tp53_status_df, by = "Sample.ID") |>
+      dplyr::mutate(
+        TP53_Status = ifelse(is.na(TP53_Status), "TP53_WT", TP53_Status),
+        Group = paste(clinical_stage, TP53_Status, sep = "|")
+      )
+  } else {
+    wt_df <- wt_df |> dplyr::mutate(Group = clinical_stage)
+  }
+  
   # Compute WT available per group
-  wt_available <- wt_df |>
-    dplyr::count(Group, name = "WT_Available_N")
-
+  wt_available <- wt_df |> dplyr::count(Group, name = "WT_Available_N")
+  
   # Compute expected draw per group based on WT availability
   sampling_plan <- wt_available |>
     dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
@@ -1007,24 +1212,24 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
       Carriers_Pct = tidyr::replace_na(Carriers_Pct, 0),
       Expected_WT = round(Carriers_Pct * WT_Available_N)
     )
-
+  
   # Merge expected counts into WT pool
   wt_for_sampling <- wt_df |>
     dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
     dplyr::filter(Expected_WT > 0)
-
+  
   # Sample per group proportionally
   wt_adj_draw <- wt_for_sampling |>
     dplyr::group_by(Group) |>
     dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
     dplyr::ungroup()
-
+  
   # ------------------------------
   # SUMMARY TABLE
   # ------------------------------
   drawn_wt_counts <- wt_adj_draw |>
     dplyr::count(Group, name = "WT_Adj_N")
-
+  
   summary_tbl <- car_summary |>
     dplyr::full_join(sampling_plan |> dplyr::select(Group, WT_Available_N, Expected_WT), by = "Group") |>
     dplyr::full_join(drawn_wt_counts, by = "Group") |>
@@ -1047,27 +1252,145 @@ standardize_global_prop_clinical_characteristics_ovarian <- function(
       Carriers_Pct = round(Carriers_Pct, 2),
       WT_Adj_Prop = round(WT_Adj_Prop, 2)
     )
-
+  
   # ------------------------------
   # EXPORT TO EXCEL
   # ------------------------------
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "WT Matching Summary")
   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
-
-  if (is.null(matching_filename)) {
-    matching_filename <- paste(Sys.Date(), gene, "loh", loh_correction, "OV_WT_matching_summary.xlsx", sep = "_")
-    matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+  
+  if (is.null(tp53_status_df)) {
+    tp53_correction <- "FALSE"
+  } else {
+    tp53_correction <- "TRUE"
   }
   
+  if (is.null(matching_filename)) {
+    matching_filename <- paste(Sys.Date(), gene, 
+                               "loh", loh_correction,
+                               "tp53", tp53_correction,
+                               "OV_WT_matching_summary.xlsx", sep = "_")
+    matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+  }
   
   if (!file.exists(matching_filename)) {
     message("Saving: ", matching_filename)
     openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
   }
-
+  
   return(wt_adj_draw$Sample.ID)
 }
+
+
+# standardize_global_prop_clinical_characteristics_ovarian <- function(
+#     anno,
+#     wt,
+#     ddr,
+#     gene,
+#     loh_correction = NULL,
+#     matching_filename = NULL) {
+# 
+#   # ------------------------------
+#   # CARRIER GROUP SUMMARY
+#   # ------------------------------
+#   anno <- remove_stripping_abc(anno, col = "clinical_stage")
+# 
+#   car_stage <- anno |>
+#     dplyr::filter(bcr_patient_barcode %in% ddr) |>
+#     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+#     dplyr::select(Sample.ID, clinical_stage)
+# 
+#   car_df <- car_stage |>
+#     dplyr::mutate(Group = clinical_stage)
+# 
+#   car_summary <- car_df |>
+#     dplyr::count(Group, name = "Carriers_N") |>
+#     dplyr::mutate(
+#       Carriers_Pct = Carriers_N / sum(Carriers_N)
+#     )
+# 
+#   # ------------------------------
+#   # WT POOL PREPARATION
+#   # ------------------------------
+#   wt_df <- anno |>
+#     dplyr::filter(!bcr_patient_barcode %in% ddr, bcr_patient_barcode %in% wt) |>
+#     dplyr::rename(Sample.ID = bcr_patient_barcode) |>
+#     dplyr::select(Sample.ID, clinical_stage) |>
+#     dplyr::rename(Group = clinical_stage)
+# 
+#   # Compute WT available per group
+#   wt_available <- wt_df |>
+#     dplyr::count(Group, name = "WT_Available_N")
+# 
+#   # Compute expected draw per group based on WT availability
+#   sampling_plan <- wt_available |>
+#     dplyr::left_join(car_summary |> dplyr::select(Group, Carriers_Pct), by = "Group") |>
+#     dplyr::mutate(
+#       Carriers_Pct = tidyr::replace_na(Carriers_Pct, 0),
+#       Expected_WT = round(Carriers_Pct * WT_Available_N)
+#     )
+# 
+#   # Merge expected counts into WT pool
+#   wt_for_sampling <- wt_df |>
+#     dplyr::left_join(sampling_plan |> dplyr::select(Group, Expected_WT), by = "Group") |>
+#     dplyr::filter(Expected_WT > 0)
+# 
+#   # Sample per group proportionally
+#   wt_adj_draw <- wt_for_sampling |>
+#     dplyr::group_by(Group) |>
+#     dplyr::group_modify(~ dplyr::slice_sample(.x, n = unique(.x$Expected_WT), replace = TRUE)) |>
+#     dplyr::ungroup()
+# 
+#   # ------------------------------
+#   # SUMMARY TABLE
+#   # ------------------------------
+#   drawn_wt_counts <- wt_adj_draw |>
+#     dplyr::count(Group, name = "WT_Adj_N")
+# 
+#   summary_tbl <- car_summary |>
+#     dplyr::full_join(sampling_plan |> dplyr::select(Group, WT_Available_N, Expected_WT), by = "Group") |>
+#     dplyr::full_join(drawn_wt_counts, by = "Group") |>
+#     dplyr::mutate(
+#       WT_Adj_Prop = ifelse(WT_Available_N > 0, WT_Adj_N / WT_Available_N, 0)
+#     ) |>
+#     tidyr::replace_na(list(
+#       Carriers_N     = 0,
+#       Carriers_Pct   = 0,
+#       Expected_WT    = 0,
+#       WT_Available_N = 0,
+#       WT_Adj_Prop    = 0,
+#       WT_Adj_N       = 0
+#     )) |>
+#     dplyr::arrange(dplyr::desc(Carriers_N)) |>
+#     dplyr::select(Group, Carriers_N, Carriers_Pct, 
+#                   WT_Available_N, WT_Adj_Prop, 
+#                   WT_Adj_N) |>
+#     dplyr::mutate(
+#       Carriers_Pct = round(Carriers_Pct, 2),
+#       WT_Adj_Prop = round(WT_Adj_Prop, 2)
+#     )
+# 
+#   # ------------------------------
+#   # EXPORT TO EXCEL
+#   # ------------------------------
+#   wb <- openxlsx::createWorkbook()
+#   openxlsx::addWorksheet(wb, "WT Matching Summary")
+#   openxlsx::writeData(wb, "WT Matching Summary", summary_tbl)
+# 
+#   if (is.null(matching_filename)) {
+#     matching_filename <- paste(Sys.Date(), gene, "loh", loh_correction, "OV_WT_matching_summary.xlsx", sep = "_")
+#     matching_filename <- here("output", "data", "TCGA/European", matching_filename)
+#   }
+#   
+#   
+#   if (!file.exists(matching_filename)) {
+#     message("Saving: ", matching_filename)
+#     openxlsx::saveWorkbook(wb, matching_filename, overwrite = FALSE)
+#   }
+# 
+#   return(wt_adj_draw$Sample.ID)
+# }
 
 
 standardize_standard_clinical_characteristics_ovarian <- function(
@@ -1101,6 +1424,7 @@ standardize_clinical_characteristics_ovarian <- function(anno,
                                                          gene,
                                                          prop_correction = FALSE,
                                                          loh_correction = NULL,
+                                                         tp53_status_df = NULL,
                                                          matching_filename = NULL) {
   if (prop_correction) {
     return(standardize_global_prop_clinical_characteristics_ovarian(
@@ -1109,6 +1433,7 @@ standardize_clinical_characteristics_ovarian <- function(anno,
       ddr = ddr,
       gene,
       loh_correction = loh_correction,
+      tp53_status_df = tp53_status_df,
       matching_filename = matching_filename
     ))
   }
