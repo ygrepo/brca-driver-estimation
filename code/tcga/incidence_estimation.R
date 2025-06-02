@@ -95,8 +95,8 @@ wt <- wt[wt %in% mut_rate$bcr_patient_barcode]
 
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-#n_runs <- 10000
-n_runs <- 1
+n_runs <- 10000
+#n_runs <- 1
 
 print(paste0("Number of runs:", n_runs))
 
