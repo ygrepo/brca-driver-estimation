@@ -22,7 +22,7 @@ if (interactive()) {
             "-c", "BRCA", 
             "-m", "cna", 
             "-a", "TRUE",
-            "-l", "TRUE",
+            "-l", "FALSE",
             "-t", "TRUE")
 } else {
   # Get real command-line arguments
@@ -108,16 +108,34 @@ message(paste0("TP53 correction: ", tp53_correction))
 
 tp53_status_df <- NULL
 if (tp53_correction) {
-  message("Reading MC3 MAF for TP53 deletions...")
-  mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
-  df_del <- mc3 |> dplyr::filter(Hugo_Symbol == "TP53", Variant_Type == "DEL")
-  tp53_del_samples <- unique(substr(df_del$Tumor_Sample_Barcode, 1, 12))
-  all_samples <- unique(substr(mc3$Tumor_Sample_Barcode, 1, 12))
+  message("Reading MC3 MAF for TP53 variants")
+  mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gene_vclass_HGVSp_sample_likelyDriverLoose_aggregated_matrix.tsv"), as.is = TRUE)
+  df <- mc3 |>
+    filter(Hugo_Symbol == "TP53") 
+  all_samples <-  unique(colnames(df)[2:ncol(df)])
+  all_samples <- unique(substr(all_samples, 1, 12))
+  all_samples <- gsub("\\.", "-", all_samples)
+  df <- df[, colSums(is.na(df)) < nrow(df)]
+  tp53_del_samples<- unique(colnames(df)[2:ncol(df)])
+  tp53_del_samples <- unique(substr(tp53_del_samples, 1, 12))
+  tp53_del_samples <- gsub("\\.", "-", tp53_del_samples)
   tp53_status_df <- tibble::tibble(
     Sample.ID = all_samples,
     TP53_Status = ifelse(all_samples %in% tp53_del_samples, "TP53_DEL", "TP53_WT")
   )
+  l = length(intersect(all_samples, tp53_del_samples))
+  cat("Number of samples with TP53 deletion: ", l, "\n")
+  l = length(intersect(ddr, all_samples))
+  cat("Number of samples with DDR variant: ", l, "\n")
+  l =  length(intersect(wt, all_samples))
+  cat("Number of samples without DDR variant: ", l, "\n")
+  l = length(intersect(ddr, tp53_del_samples))
+  cat("Number of samples with DDR variant and TP53 deletion: ", l, "\n")
+  l = length(intersect(wt, tp53_del_samples))
+  cat("Number of samples without DDR variant and TP53 deletion: ", l, "\n")
 }
+
+
 
 
 # run bootstrap
@@ -142,7 +160,7 @@ if (tp53_correction) {
 } else {
   tp53_correction <- "FALSE"
 }
-
+cat("TP53 correction: ", tp53_correction, "\n")
 filename <- paste(date, args$cancer, args$gene, args$mutation, 
                   "Prop", args$adj,
                   "loh", args$loh,

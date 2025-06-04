@@ -7,11 +7,14 @@ rm(list = ls())
 date <- Sys.Date()
 
 # mc3 <- read.delim('data/MC3_Ellrott_CellSys2018/mc3.v0.2.8.CONTROLLED.maf.gz', as.is = TRUE)
-mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gz"), as.is = TRUE)
+mc3 <- read.delim(here("data", "TCGA", "mc3.v0.2.8.PUBLIC.maf.gene_vclass_HGVSp_sample_likelyDriverLoose_aggregated_matrix.tsv"), as.is = TRUE)
 
 df <- mc3 |>
   filter(Hugo_Symbol == "TP53") 
-# 
+df_trim <- 
+  df[, colSums(is.na(df)) < nrow(df)]
+
+
 #   select(Tumor_Sample_Barcode, Variant_Type) 
 # 
 # # find all samples in mc3

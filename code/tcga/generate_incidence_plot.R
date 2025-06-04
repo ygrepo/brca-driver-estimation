@@ -16,7 +16,7 @@ if (interactive()) {
             "-c", "BRCA", 
             "-m", "cna", 
             "-a", "TRUE",
-            "-l", "TRUE",
+            "-l", "FALSE",
             "-t", "TRUE")
   } else {
   # Get real command-line arguments
