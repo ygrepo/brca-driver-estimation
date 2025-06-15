@@ -8,13 +8,14 @@ rm(list = ls())
 
 set.seed(42)
 date <- Sys.Date()
+date <- "2025-06-04" # for testing purposes
 
 source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   argv <- c("-e", "BRCA1", 
             "-c", "BRCA", 
-            "-m", "cna", 
+            "-m", "amplification", 
             "-a", "TRUE",
             "-l", "FALSE",
             "-t", "TRUE")
@@ -50,7 +51,7 @@ if (tp53_correction) {
   tp53_correction <- "FALSE"
 }
 message(paste0("TP53 correction: ", tp53_correction))
-calculate_median_est_incidence_detail(
+results <- calculate_median_est_incidence_detail(
   date,
   args$cancer,
   args$gene,
@@ -59,3 +60,26 @@ calculate_median_est_incidence_detail(
   loh_correction = args$loh,
   tp53_correction = tp53_correction
 )
+results
+
+filename <- paste(date, args$cancer, args$gene, args$mutation, 
+                  "Prop", args$adj,
+                  "loh", args$loh,
+                  "tp53", tp53_correction,
+                  "ks_test.tsv",
+                  sep = "_"
+)
+filename <- here("output", "data", "TCGA/European", filename)
+
+# write to file
+write.table(
+  results,
+  file = filename,
+  sep = "\t",
+  row.names = FALSE,
+  quote = FALSE
+)
+print(paste0(
+  "Saving results to ", filename
+))
+
