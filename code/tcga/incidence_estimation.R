@@ -26,7 +26,7 @@ if (interactive()) {
             "-l", "FALSE",
             "-t", "TRUE",
             "-n", "1",
-            "--hrd", "yes")
+            "-hrd", "yes")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -40,7 +40,7 @@ parser$add_argument("-a", "--adj", type = "character", help = "Prop Correction (
 parser$add_argument("-l", "--loh", type = "character", help = "LOH Correction (TRUE/FALSE or yes/no)")
 parser$add_argument("-t", "--tp53", type = "character", help = "TP53 Correction (TRUE/FALSE or yes/no)")
 parser$add_argument("-n", "--n_runs", type = "integer", default = 10000, help = "Number of bootstrap runs (default: 10000)")
-parser$add_argument("--hrd", type = "character", default = 'yes', help = "Exclude HRD-gene variant")
+parser$add_argument("-hrd", type = "character", default = 'yes', help = "Exclude HRD-gene variant")
 args <- parser$parse_args(argv)
 print(args)
 
