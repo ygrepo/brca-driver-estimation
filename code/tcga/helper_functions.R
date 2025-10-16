@@ -637,6 +637,7 @@ calculate_median_est_incidence_detail <- function(date,
   }
 
   result <- apply(params, 1, process_combination)
+  print(result)
   return(result[[1]])
 }
 ### STANDARDIZE WT ON CLINICAL VARIABLES

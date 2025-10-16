@@ -21,12 +21,12 @@ if (interactive()) {
   # Mimic command-line input
   argv <- c("-e", "BRCA1", 
             "-c", "BRCA", 
-            "-m", "cnaseg", 
+            "-m", "snv", 
             "-a", "TRUE",
             "-l", "FALSE",
             "-t", "TRUE",
             "-n", "1",
-            "-hrd", "yes")
+            "-hrd", "no")
 } else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
@@ -124,7 +124,7 @@ if (args$hrd == "TRUE" || tolower(args$hrd) %in% c("true", "t", "1", "yes", "y")
 
 # print the number of ddr samples
 print(paste0("Number of ", args$cancer, " samples with variant in ", args$gene, ": ", length(ddr)))
-n_runs <- 10000
+n_runs <- args$n_runs
 #n_runs <- 1
 
 print(paste0("Number of runs:", n_runs))

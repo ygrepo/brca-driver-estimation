@@ -8,19 +8,20 @@ rm(list = ls())
 
 set.seed(42)
 date <- Sys.Date()
-date <- "2025-06-04" # for testing purposes
+date <- "2025-10-16" # for testing purposes
 
 source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
   # Mimic command-line input
   argv <- c("-e", "BRCA1", 
             "-c", "BRCA", 
-            "-m", "amplification", 
+            "-m", "snv", 
             "-a", "TRUE",
             "-l", "FALSE",
             "-t", "TRUE",
-            "-hrd", "yes")
-  } else {
+            "-n", "1",
+            "-hrd", "no")
+} else {
   # Get real command-line arguments
   argv <- commandArgs(trailingOnly = TRUE)
 }
