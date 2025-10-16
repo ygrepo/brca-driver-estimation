@@ -705,7 +705,7 @@ calculate_median_est_incidence_detail <- function(date,
     )
 
     ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
-    
+    print(ks)
     # Pretty P labels (handle NA + underflow)
     ks$P_label <- ifelse(
       is.na(ks$P),
@@ -723,7 +723,7 @@ calculate_median_est_incidence_detail <- function(date,
     # # Choose column order (keep only those that exist)
     # wanted <- c("group","driver","n1","n2","D","D_lo","D_hi","P","P_label")
     # ks <- ks[, intersect(wanted, names(ks)), drop = FALSE]
-    
+    print(cat("KS test results for", cancer, gene, mutation, "\n"))
     print(ks, row.names = FALSE)
     # 
     # ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
