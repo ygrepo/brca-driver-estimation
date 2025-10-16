@@ -176,39 +176,20 @@ calculate_CIs <- function(x) {
 run_ks_test <- function(df, ob_dist) {
   cols <- grep("ratio|incidence", names(df), value = TRUE)
   out <- lapply(cols, function(col) {
-    x <- df[[col]]; x <- x[is.finite(x)]
+    x <- df[[col]]
+    x <- x[is.finite(x)]
     y <- ob_dist[is.finite(ob_dist)]
-    n1 <- length(x); n2 <- length(y)
     st <- ks.test(x, y)
-    
-    # asymptotic upper-bound / approximation for tiny p
-    t <- as.numeric(st$statistic) * sqrt(n1 * n2 / (n1 + n2))
-    log10_p_approx <- log10(2) - (2 * t^2) / log(10)        # ≈ log10 p
-    p_upper <- 10^log10_p_approx                             # may underflow; use label below
-    p_label <- if (st$p.value == 0) {
-      # print as an inequality using the approximation
-      paste0("< ", formatC(10^(floor(log10_p_approx)), format="e", digits=1))
-    } else {
-      formatC(st$p.value, format = "e", digits = 6)
-    }
-    
-    data.frame(
-      driver = sub("^incidence_", "", col),
-      n1 = n1, n2 = n2,
-      D = unname(st$statistic),
-      P = st$p.value,
-      P_label = p_label,
-      minus_log10P_approx = -log10_p_approx,  # useful when P is effectively 0
-      stringsAsFactors = FALSE
-    )
+    data.frame(driver = sub("^incidence_", "", col),
+               D = unname(st$statistic),
+               P = st$p.value,
+               stringsAsFactors = FALSE)
   })
   res <- do.call(rbind, out)
   rownames(res) <- NULL
-  print(res[, c("driver","n1","n2","D","P_label","minus_log10P_approx")], row.names = FALSE)
-  res
+  print(format(res, scientific = TRUE, digits = 22), row.names = FALSE)
+  return(res)
 }
-
-
 # 
 # 
 # run_ks_test <- function(df, ob_dist) {
