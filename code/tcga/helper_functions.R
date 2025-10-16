@@ -191,40 +191,57 @@ calculate_CIs <- function(x) {
 #   return(res)
 # }
 
-run_ks_test <- function(df, ob_dist) {
+# Bootstrap CI for two-sample KS statistic D
+.ks_boot_ci <- function(x, y, B = 2000, conf = 0.95, seed = NULL) {
+  x <- x[is.finite(x)]; y <- y[is.finite(y)]
+  n1 <- length(x); n2 <- length(y)
+  if (n1 == 0 || n2 == 0) return(c(NA_real_, NA_real_))
+  if (!is.null(seed)) set.seed(seed)
+  
+  Ds <- replicate(B, {
+    xs <- sample(x, n1, replace = TRUE)
+    ys <- sample(y, n2, replace = TRUE)
+    suppressWarnings(as.numeric(ks.test(xs, ys)$statistic))
+  })
+  qs <- quantile(Ds, probs = c((1 - conf)/2, 1 - (1 - conf)/2), names = FALSE, type = 7)
+  c(qs[1], qs[2])
+}
+
+run_ks_test <- function(df, ob_dist, B = 2000, conf = 0.95, seed = 123) {
   cols <- grep("ratio|incidence", names(df), value = TRUE)
   out <- lapply(cols, function(col) {
     x <- df[[col]]; x <- x[is.finite(x)]
     y <- ob_dist[is.finite(ob_dist)]
     n1 <- length(x); n2 <- length(y)
-    st <- ks.test(x, y)
     
-    # asymptotic upper-bound / approximation for tiny p
-    t <- as.numeric(st$statistic) * sqrt(n1 * n2 / (n1 + n2))
-    log10_p_approx <- log10(2) - (2 * t^2) / log(10)        # ≈ log10 p
-    p_upper <- 10^log10_p_approx                             # may underflow; use label below
-    p_label <- if (st$p.value == 0) {
-      # print as an inequality using the approximation
-      paste0("< ", formatC(10^(floor(log10_p_approx)), format="e", digits=1))
-    } else {
-      formatC(st$p.value, format = "e", digits = 6)
+    if (n1 == 0 || n2 == 0) {
+      return(data.frame(
+        driver = sub("^incidence_", "", col),
+        n1 = n1, n2 = n2,
+        D = NA_real_, P = NA_real_,
+        D_lo = NA_real_, D_hi = NA_real_,
+        stringsAsFactors = FALSE
+      ))
     }
+    
+    st <- suppressWarnings(ks.test(x, y))
+    ci <- .ks_boot_ci(x, y, B = B, conf = conf, seed = seed)
     
     data.frame(
       driver = sub("^incidence_", "", col),
       n1 = n1, n2 = n2,
-      D = unname(st$statistic),
-      P = st$p.value,
-      P_label = p_label,
-      minus_log10P_approx = -log10_p_approx,  # useful when P is effectively 0
+      D = unname(as.numeric(st$statistic)),
+      P = st$p.value,            # may print as 0 if underflow
+      D_lo = ci[1],              # bootstrap lower bound for D
+      D_hi = ci[2],              # bootstrap upper bound for D
       stringsAsFactors = FALSE
     )
   })
   res <- do.call(rbind, out)
   rownames(res) <- NULL
-  print(format(res, scientific = TRUE, digits = 22), row.names = FALSE)
   res
 }
+
 
 
 # 
@@ -687,8 +704,34 @@ calculate_median_est_incidence_detail <- function(date,
       ylimits = ylimits, yat = yat
     )
 
-    ks <- run_ks_test(est_data, ob_dist)
+    ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
+    
+    # Pretty P labels (handle NA + underflow)
+    ks$P_label <- ifelse(
+      is.na(ks$P),
+      NA_character_,
+      ifelse(
+        ks$P == 0,
+        paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
+        formatC(ks$P, format = "e", digits = 6)
+      )
+    )
+    
+    # Optional: add a group tag (ensure these vars exist)
     ks$group <- paste(cancer, gene, mutation, sep = "|")
+    
+    # Choose column order (keep only those that exist)
+    wanted <- c("group","driver","n1","n2","D","D_lo","D_hi","P","P_label")
+    ks <- ks[, intersect(wanted, names(ks)), drop = FALSE]
+    
+    print(ks, row.names = FALSE)
+    # 
+    # ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
+    # print(ks)
+    # # Or prettier P labels:
+    # ks$P_label <- ifelse(ks$P == 0, "< 1e-308", formatC(ks$P, format = "e", digits = 6))
+    # ks[, c("driver","n1","n2","D","D_lo","D_hi","P_label")]
+    # ks$group <- paste(cancer, gene, mutation, sep = "|")
     return(ks)
   }
 
