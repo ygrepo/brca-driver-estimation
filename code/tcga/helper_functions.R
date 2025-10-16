@@ -172,25 +172,7 @@ calculate_CIs <- function(x) {
   x <- x[order(x)]
   return(x[c(250, 9750)])
 }
-
-# run_ks_test <- function(df, ob_dist) {
-#   cols <- grep("ratio|incidence", names(df), value = TRUE)
-#   out <- lapply(cols, function(col) {
-#     x <- df[[col]]
-#     x <- x[is.finite(x)]
-#     y <- ob_dist[is.finite(ob_dist)]
-#     st <- ks.test(x, y)
-#     data.frame(driver = sub("^incidence_", "", col),
-#                D = unname(st$statistic),
-#                P = st$p.value,
-#                stringsAsFactors = FALSE)
-#   })
-#   res <- do.call(rbind, out)
-#   rownames(res) <- NULL
-#   print(format(res, scientific = TRUE, digits = 22), row.names = FALSE)
-#   return(res)
-# }
-
+### RUN KS TEST ###################################################################################
 # Bootstrap CI for two-sample KS statistic D
 # --- helpers ---
 .ks_boot_ci <- function(x, y, B = 2000, conf = 0.95, seed = NULL) {
@@ -253,28 +235,6 @@ run_ks_test <- function(df, ob_dist, B = 2000, conf = 0.95, seed = 123) {
   res
 }
 
-
-# 
-# 
-# run_ks_test <- function(df, ob_dist) {
-#   # run Kolmogorov-Smirnov test for each number of drivers
-#   stats <- do.call(rbind, apply(
-#     df[, grep("ratio|incidence", colnames(df))],
-#     2,
-#     function(x) {
-#       stats_tmp <- ks.test(
-#         x,
-#         ob_dist
-#       )
-#       data.frame(
-#         D = stats_tmp$statistic,
-#         P = stats_tmp$p.value
-#       )
-#     }
-#   ))
-#   stats$driver <- gsub("incidence_", "", grep("ratio|incidence", colnames(df), value = TRUE))
-#   return(stats)
-# }
 
 create_incidence_segplot <- function(tmp, mut, ob_median, ob_L95, ob_U95, filename, main,
                                      driver_max = NULL, yat = NULL, ylimits = NULL) {
