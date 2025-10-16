@@ -634,6 +634,120 @@ get_plot_limits <- function(cancer, mutation, gene) {
 }
 
 
+# 
+# calculate_median_est_incidence_detail <- function(date,
+#                                                   cancer,
+#                                                   gene,
+#                                                   mutation,
+#                                                   prop_correction = FALSE,
+#                                                   loh_correction = NULL,
+#                                                   tp53_correction= "FALSE") {
+#   prop_correction_str <- as.character(prop_correction)
+# 
+#   # Define parameter combinations
+#   params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation)
+#   print(params)
+# 
+#   # Read observed data once
+#   observed_data <- readxl::read_xlsx(
+#     here(
+#       "data", "TCGA",
+#       "SupplementaryTable01_BRCA_OVCA_SIR.xlsx"
+#     ),
+#     "Formated"
+#   )
+# 
+#   process_combination <- function(x) {
+#     cancer <- x["cancer"]
+#     gene <- x["gene"]
+#     mutation <- x["mutation"]
+# 
+#     # Construct input/output paths
+#     infile <- paste(date, args$cancer, args$gene, args$mutation, 
+#                       "Prop", prop_correction_str,
+#                       "loh", loh_correction,
+#                       "tp53", tp53_correction,
+#                       "incidence_estimates.tsv",
+#                       sep = "_"
+#     )
+#     infile <- here("output", "data", "TCGA/European", infile)
+#     message("Reading file: ", infile)
+# 
+# 
+#     # Read incidence estimate
+#     est_data <- read.delim(infile, as.is = TRUE)
+# 
+#     # Extract observed statistics
+#     obs_row <- subset(observed_data, Cancer == cancer & Gene == gene)
+#     ob_median <- obs_row$Median[[1]]
+#     ob_L95 <- obs_row$L95[[1]]
+#     ob_U95 <- obs_row$U95[[1]]
+#     ob_n <- obs_row$Num[[1]]
+#     message("n: ", ob_n)
+# 
+#     ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
+#     ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
+# 
+# 
+#     # Plot configuration
+#     limits <- get_plot_limits(cancer, mutation, gene)
+#     driver_max <- limits$driver_max
+#     ylimits <- limits$ylimits
+#     yat <- limits$yat
+#     plotfile <- here(
+#       "output", "figures", "TCGA/European",
+#       paste(date, cancer, gene, mutation, 
+#             "Prop",prop_correction_str,
+#             "loh", loh_correction,
+#             "tp53", tp53_correction,
+#         "segplot.tiff",
+#         sep = "_"
+#       )
+#     )
+#     print(paste("Saving fig.:", plotfile))
+# 
+#     create_incidence_segplot(est_data, mutation,
+#       ob_median, ob_L95, ob_U95,
+#       filename = plotfile,
+#       main = paste(cancer, gene),
+#       driver_max = driver_max,
+#       ylimits = ylimits, yat = yat
+#     )
+#     
+#     # --- your calling code (safe) ---
+#     ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
+#     
+#     # Pretty P labels only if we have rows
+#     if (nrow(ks) > 0) {
+#       ks$P_label <- ifelse(
+#         is.na(ks$P),
+#         NA_character_,
+#         ifelse(
+#           ks$P == 0,
+#           paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
+#           formatC(ks$P, format = "e", digits = 6)
+#         )
+#       )
+#       # Make group a scalar and recycle
+#       group_val <- paste0(
+#         if (exists("cancer") && length(cancer) > 0) cancer else NA_character_, "|",
+#         if (exists("gene")   && length(gene)   > 0) gene   else NA_character_, "|",
+#         if (exists("mutation") && length(mutation) > 0) mutation else NA_character_
+#       )
+#       ks$group <- rep(group_val, nrow(ks))
+#     }
+#     
+#     # Print title WITHOUT wrapping in print()
+#     cat("KS test results for", cancer, gene, mutation, "\n")
+#     
+#     # Print the table (will show 0 rows cleanly if empty)
+#     print(ks, row.names = FALSE)
+#     return(ks)
+#   }
+# 
+#   result <- apply(params, 1, process_combination)
+#   return(result[[1]])
+# }
 
 calculate_median_est_incidence_detail <- function(date,
                                                   cancer,
@@ -641,113 +755,105 @@ calculate_median_est_incidence_detail <- function(date,
                                                   mutation,
                                                   prop_correction = FALSE,
                                                   loh_correction = NULL,
-                                                  tp53_correction= "FALSE") {
+                                                  tp53_correction = "FALSE") {
   prop_correction_str <- as.character(prop_correction)
-
-  # Define parameter combinations
-  params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation)
+  
+  # Parameter grid
+  params <- expand.grid(cancer = cancer, gene = gene, mutation = mutation, stringsAsFactors = FALSE)
   print(params)
-
-  # Read observed data once
+  
+  # Observed data (sheet name: "Formated" as in your code)
   observed_data <- readxl::read_xlsx(
-    here(
-      "data", "TCGA",
-      "SupplementaryTable01_BRCA_OVCA_SIR.xlsx"
-    ),
-    "Formated"
+    here("data", "TCGA", "SupplementaryTable01_BRCA_OVCA_SIR.xlsx"),
+    sheet = "Formated"
   )
-
-  process_combination <- function(x) {
-    cancer <- x["cancer"]
-    gene <- x["gene"]
-    mutation <- x["mutation"]
-
-    # Construct input/output paths
-    infile <- paste(date, args$cancer, args$gene, args$mutation, 
-                      "Prop", prop_correction_str,
-                      "loh", loh_correction,
-                      "tp53", tp53_correction,
-                      "incidence_estimates.tsv",
-                      sep = "_"
-    )
+  
+  process_combination <- function(i) {
+    cancer_i   <- params$cancer[i]
+    gene_i     <- params$gene[i]
+    mutation_i <- params$mutation[i]
+    
+    # Build input/output paths using the local variables (NOT args$...)
+    infile <- paste(date, cancer_i, gene_i, mutation_i,
+                    "Prop", prop_correction_str,
+                    "loh",  loh_correction,
+                    "tp53", tp53_correction,
+                    "incidence_estimates.tsv",
+                    sep = "_")
     infile <- here("output", "data", "TCGA/European", infile)
     message("Reading file: ", infile)
-
-
-    # Read incidence estimate
+    
+    # Read incidence estimates
     est_data <- read.delim(infile, as.is = TRUE)
-
-    # Extract observed statistics
-    obs_row <- subset(observed_data, Cancer == cancer & Gene == gene)
+    
+    # Observed stats
+    obs_row <- subset(observed_data, Cancer == cancer_i & Gene == gene_i)
+    if (nrow(obs_row) == 0)
+      stop("No observed row found for ", cancer_i, " / ", gene_i)
+    
     ob_median <- obs_row$Median[[1]]
-    ob_L95 <- obs_row$L95[[1]]
-    ob_U95 <- obs_row$U95[[1]]
-    ob_n <- obs_row$Num[[1]]
+    ob_L95    <- obs_row$L95[[1]]
+    ob_U95    <- obs_row$U95[[1]]
+    ob_n      <- obs_row$Num[[1]]
     message("n: ", ob_n)
-
-    ob_sd <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
+    
+    # Approx sampling SD from CI (your formula retained)
+    ob_sd   <- sqrt(ob_n) * (ob_U95 - ob_L95) / 3.92
     ob_dist <- rnorm(10000, mean = ob_median, sd = ob_sd)
-
-
-    # Plot configuration
-    limits <- get_plot_limits(cancer, mutation, gene)
+    
+    # Plot config
+    limits     <- get_plot_limits(cancer_i, mutation_i, gene_i)
     driver_max <- limits$driver_max
-    ylimits <- limits$ylimits
-    yat <- limits$yat
-    plotfile <- here(
-      "output", "figures", "TCGA/European",
-      paste(date, cancer, gene, mutation, 
-            "Prop",prop_correction_str,
-            "loh", loh_correction,
-            "tp53", tp53_correction,
-        "segplot.tiff",
-        sep = "_"
-      )
-    )
+    ylimits    <- limits$ylimits
+    yat        <- limits$yat
+    
+    plotfile <- here("output", "figures", "TCGA/European",
+                     paste(date, cancer_i, gene_i, mutation_i,
+                           "Prop", prop_correction_str,
+                           "loh",  loh_correction,
+                           "tp53", tp53_correction,
+                           "segplot.tiff",
+                           sep = "_"))
     print(paste("Saving fig.:", plotfile))
-
-    create_incidence_segplot(est_data, mutation,
+    
+    create_incidence_segplot(
+      est_data, mutation_i,
       ob_median, ob_L95, ob_U95,
-      filename = plotfile,
-      main = paste(cancer, gene),
+      filename   = plotfile,
+      main       = paste(cancer_i, gene_i),
       driver_max = driver_max,
-      ylimits = ylimits, yat = yat
+      ylimits    = ylimits, yat = yat
     )
     
-    # --- your calling code (safe) ---
-    ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
+    # --- KS tests: use est_data (not df) ---
+    ks <- run_ks_test(est_data, ob_dist, B = 3000, conf = 0.95, seed = 1)
     
-    # Pretty P labels only if we have rows
+    # Labels + group
     if (nrow(ks) > 0) {
       ks$P_label <- ifelse(
-        is.na(ks$P),
-        NA_character_,
-        ifelse(
-          ks$P == 0,
-          paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
-          formatC(ks$P, format = "e", digits = 6)
-        )
+        is.na(ks$P), NA_character_,
+        ifelse(ks$P == 0,
+               paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
+               formatC(ks$P, format = "e", digits = 6))
       )
-      # Make group a scalar and recycle
-      group_val <- paste0(
-        if (exists("cancer") && length(cancer) > 0) cancer else NA_character_, "|",
-        if (exists("gene")   && length(gene)   > 0) gene   else NA_character_, "|",
-        if (exists("mutation") && length(mutation) > 0) mutation else NA_character_
-      )
-      ks$group <- rep(group_val, nrow(ks))
+      ks$group <- paste(cancer_i, gene_i, mutation_i, sep = "|")
     }
     
-    # Print title WITHOUT wrapping in print()
-    cat("KS test results for", cancer, gene, mutation, "\n")
-    
-    # Print the table (will show 0 rows cleanly if empty)
+    cat("KS test results for", cancer_i, gene_i, mutation_i, "\n")
     print(ks, row.names = FALSE)
-    return(ks)
+    ks
   }
-
-  result <- apply(params, 1, process_combination)
-  return(result[[1]])
+  
+  # loop safely over combinations; collect rows
+  out_list <- lapply(seq_len(nrow(params)), process_combination)
+  out <- do.call(rbind, out_list)
+  rownames(out) <- NULL
+  out
 }
+
+
+
+### ################################################################################################
 ### STANDARDIZE WT ON CLINICAL VARIABLES
 ### ################################################################################################
 
