@@ -136,8 +136,8 @@ for entry in "${params[@]}"; do
     -P acc_DiseaseGeneCell \
     -q premium \
     -n 1 \
-    -R "rusage[mem=30000]" \
-    -W 1:00 \
+    -R "rusage[mem=64G]" \
+    -W 10:00 \
     -o "logs/${jobname}.%J.out" \
     -eo "logs/${jobname}.%J.err" \
     "module purge; module load R/4.4.3; \
