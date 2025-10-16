@@ -8,7 +8,7 @@ rm(list = ls())
 
 set.seed(42)
 date <- Sys.Date()
-date <- "2025-10-16" # for testing purposes
+#date <- "2025-10-16" # for testing purposes
 
 source(here("code", "tcga", "helper_functions.R"))
 if (interactive()) {
