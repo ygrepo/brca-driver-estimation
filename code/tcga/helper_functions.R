@@ -720,9 +720,9 @@ calculate_median_est_incidence_detail <- function(date,
     # Optional: add a group tag (ensure these vars exist)
     ks$group <- paste(cancer, gene, mutation, sep = "|")
     
-    # Choose column order (keep only those that exist)
-    wanted <- c("group","driver","n1","n2","D","D_lo","D_hi","P","P_label")
-    ks <- ks[, intersect(wanted, names(ks)), drop = FALSE]
+    # # Choose column order (keep only those that exist)
+    # wanted <- c("group","driver","n1","n2","D","D_lo","D_hi","P","P_label")
+    # ks <- ks[, intersect(wanted, names(ks)), drop = FALSE]
     
     print(ks, row.names = FALSE)
     # 
