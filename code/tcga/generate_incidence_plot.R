@@ -55,35 +55,35 @@ if (tp53_correction) {
   tp53_correction <- "FALSE"
 }
 message(paste0("TP53 correction: ", tp53_correction))
-results <- calculate_median_est_incidence_detail(
-  date,
-  args$cancer,
-  args$gene,
-  args$mutation,
-  prop_correction,
-  loh_correction = args$loh,
-  tp53_correction = tp53_correction
-)
-results
-
-filename <- paste(date, args$cancer, args$gene, args$mutation, 
-                  "Prop", args$adj,
-                  "loh", args$loh,
-                  "tp53", tp53_correction,
-                  "ks_test.tsv",
-                  sep = "_"
-)
-filename <- here("output", "data", "TCGA/European", filename)
-
-# write to file
-write.table(
-  results,
-  file = filename,
-  sep = "\t",
-  row.names = FALSE,
-  quote = FALSE
-)
-print(paste0(
-  "Saving results to ", filename
-))
+  results <- calculate_median_est_incidence_detail(
+    date,
+    args$cancer,
+    args$gene,
+    args$mutation,
+    prop_correction,
+    loh_correction = args$loh,
+    tp53_correction = tp53_correction
+  )
+  results
+  
+  filename <- paste(date, args$cancer, args$gene, args$mutation, 
+                    "Prop", args$adj,
+                    "loh", args$loh,
+                    "tp53", tp53_correction,
+                    "ks_test.tsv",
+                    sep = "_"
+  )
+  filename <- here("output", "data", "TCGA/European", filename)
+  
+  # write to file
+  write.table(
+    results,
+    file = filename,
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+  )
+  print(paste0(
+    "Saving results to ", filename
+  ))
 
