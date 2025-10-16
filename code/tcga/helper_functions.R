@@ -192,23 +192,34 @@ calculate_CIs <- function(x) {
 # }
 
 # Bootstrap CI for two-sample KS statistic D
+# --- helpers ---
 .ks_boot_ci <- function(x, y, B = 2000, conf = 0.95, seed = NULL) {
   x <- x[is.finite(x)]; y <- y[is.finite(y)]
   n1 <- length(x); n2 <- length(y)
   if (n1 == 0 || n2 == 0) return(c(NA_real_, NA_real_))
   if (!is.null(seed)) set.seed(seed)
-  
   Ds <- replicate(B, {
     xs <- sample(x, n1, replace = TRUE)
     ys <- sample(y, n2, replace = TRUE)
     suppressWarnings(as.numeric(ks.test(xs, ys)$statistic))
   })
-  qs <- quantile(Ds, probs = c((1 - conf)/2, 1 - (1 - conf)/2), names = FALSE, type = 7)
-  c(qs[1], qs[2])
+  quantile(Ds, probs = c((1 - conf)/2, 1 - (1 - conf)/2), names = FALSE, type = 7)
 }
 
 run_ks_test <- function(df, ob_dist, B = 2000, conf = 0.95, seed = 123) {
-  cols <- grep("ratio|incidence", names(df), value = TRUE)
+  # clean up names and find target columns
+  names(df) <- trimws(names(df))
+  cols <- grep("ratio|incidence", names(df), value = TRUE, ignore.case = TRUE)
+  
+  if (length(cols) == 0) {
+    warning("No columns matched /ratio|incidence/ in df.")
+    return(data.frame(
+      driver = character(0), n1 = integer(0), n2 = integer(0),
+      D = numeric(0), P = numeric(0), D_lo = numeric(0), D_hi = numeric(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  
   out <- lapply(cols, function(col) {
     x <- df[[col]]; x <- x[is.finite(x)]
     y <- ob_dist[is.finite(ob_dist)]
@@ -216,10 +227,9 @@ run_ks_test <- function(df, ob_dist, B = 2000, conf = 0.95, seed = 123) {
     
     if (n1 == 0 || n2 == 0) {
       return(data.frame(
-        driver = sub("^incidence_", "", col),
+        driver = sub("^incidence_", "", col, ignore.case = TRUE),
         n1 = n1, n2 = n2,
-        D = NA_real_, P = NA_real_,
-        D_lo = NA_real_, D_hi = NA_real_,
+        D = NA_real_, P = NA_real_, D_lo = NA_real_, D_hi = NA_real_,
         stringsAsFactors = FALSE
       ))
     }
@@ -228,20 +238,20 @@ run_ks_test <- function(df, ob_dist, B = 2000, conf = 0.95, seed = 123) {
     ci <- .ks_boot_ci(x, y, B = B, conf = conf, seed = seed)
     
     data.frame(
-      driver = sub("^incidence_", "", col),
+      driver = sub("^incidence_", "", col, ignore.case = TRUE),
       n1 = n1, n2 = n2,
       D = unname(as.numeric(st$statistic)),
-      P = st$p.value,            # may print as 0 if underflow
-      D_lo = ci[1],              # bootstrap lower bound for D
-      D_hi = ci[2],              # bootstrap upper bound for D
+      P = st$p.value,
+      D_lo = ci[1],
+      D_hi = ci[2],
       stringsAsFactors = FALSE
     )
   })
+  
   res <- do.call(rbind, out)
   rownames(res) <- NULL
   res
 }
-
 
 
 # 
@@ -703,35 +713,35 @@ calculate_median_est_incidence_detail <- function(date,
       driver_max = driver_max,
       ylimits = ylimits, yat = yat
     )
-
+    
+    # --- your calling code (safe) ---
     ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
-    print(ks)
-    # Pretty P labels (handle NA + underflow)
-    ks$P_label <- ifelse(
-      is.na(ks$P),
-      NA_character_,
-      ifelse(
-        ks$P == 0,
-        paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
-        formatC(ks$P, format = "e", digits = 6)
+    
+    # Pretty P labels only if we have rows
+    if (nrow(ks) > 0) {
+      ks$P_label <- ifelse(
+        is.na(ks$P),
+        NA_character_,
+        ifelse(
+          ks$P == 0,
+          paste0("< ", formatC(.Machine$double.xmin, format = "e", digits = 1)),
+          formatC(ks$P, format = "e", digits = 6)
+        )
       )
-    )
+      # Make group a scalar and recycle
+      group_val <- paste0(
+        if (exists("cancer") && length(cancer) > 0) cancer else NA_character_, "|",
+        if (exists("gene")   && length(gene)   > 0) gene   else NA_character_, "|",
+        if (exists("mutation") && length(mutation) > 0) mutation else NA_character_
+      )
+      ks$group <- rep(group_val, nrow(ks))
+    }
     
-    # Optional: add a group tag (ensure these vars exist)
-    ks$group <- paste(cancer, gene, mutation, sep = "|")
+    # Print title WITHOUT wrapping in print()
+    cat("KS test results for", cancer, gene, mutation, "\n")
     
-    # # Choose column order (keep only those that exist)
-    # wanted <- c("group","driver","n1","n2","D","D_lo","D_hi","P","P_label")
-    # ks <- ks[, intersect(wanted, names(ks)), drop = FALSE]
-    print(cat("KS test results for", cancer, gene, mutation, "\n"))
+    # Print the table (will show 0 rows cleanly if empty)
     print(ks, row.names = FALSE)
-    # 
-    # ks <- run_ks_test(df, ob_dist, B = 3000, conf = 0.95, seed = 1)
-    # print(ks)
-    # # Or prettier P labels:
-    # ks$P_label <- ifelse(ks$P == 0, "< 1e-308", formatC(ks$P, format = "e", digits = 6))
-    # ks[, c("driver","n1","n2","D","D_lo","D_hi","P_label")]
-    # ks$group <- paste(cancer, gene, mutation, sep = "|")
     return(ks)
   }
 
